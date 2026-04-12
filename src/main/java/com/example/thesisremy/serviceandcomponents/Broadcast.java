@@ -4,71 +4,109 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /*
-    This service manages all active SSE connections and is responsible for
-    pushing data out to the Android glasses.
+    This service manages all active SSE connections and pushes data to the glasses.
 
-    SSE (Server-Sent Events) is a one-way communication channel: the server
-    pushes updates to the client over a regular HTTP connection that is kept open.
-    It is simpler than WebSocket for this use case because we only need to send
-    data in one direction — from server to glasses.
+    SSE (Server-Sent Events) is a one-way channel: the server pushes updates to the
+    client over a persistent HTTP connection. Each connected glasses device gets its
+    own SseEmitter object, kept in a shared list.
 
-    Every time a glasses device connects via GET /stream, it gets its own SseEmitter
-    object. All active emitters are kept in a list. When new welding data arrives,
-    broadcast() loops through the list and sends the data to each connected device.
+    Ghost connection problem: when a Wi-Fi connection drops abruptly, Spring does not
+    always fire the onError/onCompletion callbacks. The emitter stays in the list as a
+    ghost and the dashboard shows too many connected clients. A scheduled heartbeat
+    every 30 seconds sends a small comment to all emitters — any dead connection throws
+    an IOException and is removed immediately.
 */
 @Service
 public class Broadcast {
 
     /*
-        The list of all currently connected clients.
-
-        CopyOnWriteArrayList is used here instead of a regular ArrayList because
-        connections can be added or removed at the same time as data is being sent
-        (concurrency). A regular ArrayList is not safe in that situation and can
-        throw exceptions or corrupt the list.
-
-        CopyOnWriteArrayList solves this by making a fresh copy of the list every
-        time it is modified. Reads (like looping during broadcast) always see a
-        stable snapshot, so no crash can occur.
+        Thread-safe list of all currently connected SSE clients.
+        CopyOnWriteArrayList ensures that looping during a broadcast is always safe,
+        even if a connection is added or removed at the same moment.
     */
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     /*
         Called by ControllerClass when a new client connects to GET /stream.
-        Creates a new emitter for that client and registers three cleanup callbacks
-        so the emitter is automatically removed from the list when the connection ends —
-        whether that happens normally, due to an error, or because of a timeout.
+        Three cleanup callbacks ensure the emitter is removed when the connection ends,
+        whether it closes cleanly, drops with an error, or times out.
     */
     public SseEmitter addEmitter() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // no timeout — keep the connection open indefinitely
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter)); // client disconnected cleanly
-        emitter.onError(e    -> emitters.remove(emitter));   // connection dropped unexpectedly
-        emitter.onTimeout(() -> emitters.remove(emitter));   // connection timed out
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onError(e    -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+        System.out.println("[SSE] Client connected — active connections: " + emitters.size());
         return emitter;
     }
 
     /*
-        Sends a JSON string to every connected client.
-
-        removeIf() is used here as a convenient way to send and clean up in one pass:
-        if sending to a client fails (IOException), it means that client has gone away
-        and we return true to have it removed from the list. If sending succeeds we
-        return false and it stays in the list.
+        Sends welding data as an UNNAMED SSE event.
+        Unnamed events are received by the standard onMessage() handler in Android —
+        keeping this unnamed means the existing Android app works without any changes.
     */
     public void broadcast(String json) {
         emitters.removeIf(emitter -> {
             try {
                 emitter.send(SseEmitter.event().data(json));
-                return false; // send succeeded — keep this client in the list
+                return false;
             } catch (IOException ignored) {
                 emitter.complete();
-                return true;  // send failed — remove this client from the list
+                return true;
             }
         });
+    }
+
+    /*
+        Sends a JSON string as a NAMED SSE event.
+        The Android app can listen for a specific event name and ignore all others.
+
+        Currently used event names:
+          "pooldetection" — weld pool coordinates from pool_detector.py
+    */
+    public void broadcastNamed(String eventName, String json) {
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(json));
+                return false;
+            } catch (IOException ignored) {
+                emitter.complete();
+                return true;
+            }
+        });
+    }
+
+    /*
+        Heartbeat — runs every 30 seconds.
+        Sends an SSE comment (a line starting with ':') to every emitter.
+        SSE comments carry no data and are ignored by clients, but they cause
+        an IOException on any connection that has silently died. Those dead
+        emitters are removed from the list, keeping the count accurate.
+    */
+    @Scheduled(fixedRate = 30_000)
+    public void heartbeat() {
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+                return false;
+            } catch (IOException ignored) {
+                emitter.complete();
+                return true;
+            }
+        });
+        if (!emitters.isEmpty()) {
+            System.out.println("[SSE] Heartbeat — active connections: " + emitters.size());
+        }
+    }
+
+    // Used by the dashboard status panel
+    public int getConnectedCount() {
+        return emitters.size();
     }
 }

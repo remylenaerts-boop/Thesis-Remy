@@ -29,10 +29,18 @@ public class StartupLogger {
     public ApplicationRunner logStartup() {
         return args -> {
             System.out.println("======================================");
-            System.out.println("Server is running on port: " + port);
-            System.out.println("mDNS name:                 " + serverName + ".local");
-            System.out.println("SSE endpoint:              http://" + serverName + ":" + port + "/stream");
-            System.out.println("WebSocket endpoint:        ws://"   + serverName + ":" + port + "/frames");
+            System.out.println("  AR Welding Server — READY");
+            System.out.println("======================================");
+            System.out.println("  Dashboard:    http://localhost:"    + port + "/dashboard");
+            System.out.println("--------------------------------------");
+            System.out.println("  SSE stream:   http://" + serverName + ".local:" + port + "/stream");
+            System.out.println("    event: welddata      — Python AI welding parameters");
+            System.out.println("    event: pooldetection — weld pool coordinates (OpenCV)");
+            System.out.println("  WebSocket:    ws://"   + serverName + ".local:" + port + "/frames");
+            System.out.println("    binary frames in    — camera feed from glasses");
+            System.out.println("--------------------------------------");
+            System.out.println("  Pool detector POST:  http://localhost:" + port + "/pool");
+            System.out.println("  Frame count:         http://localhost:" + port + "/frames/count");
             System.out.println("======================================");
         };
     }

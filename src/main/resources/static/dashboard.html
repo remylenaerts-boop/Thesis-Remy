@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AR Welding Server — Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: monospace;
+            background: #0d0d0d;
+            color: #e0e0e0;
+            padding: 24px;
+        }
+
+        h1 { font-size: 1.3rem; color: #ffffff; margin-bottom: 24px; letter-spacing: 2px; }
+        h2 { font-size: 0.85rem; color: #888; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 960px;
+        }
+
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .card.full { grid-column: 1 / -1; }
+
+        /* Status dots */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot.green  { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+        .dot.red    { background: #f44336; box-shadow: 0 0 6px #f44336; }
+        .dot.grey   { background: #555; }
+
+        /* Toggle buttons */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        button {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.8rem;
+            transition: background 0.15s;
+        }
+
+        button:hover { background: #333; }
+        button.on  { border-color: #4caf50; color: #4caf50; }
+        button.off { border-color: #f44336; color: #f44336; }
+
+        /* Settings form */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.82rem;
+            gap: 12px;
+        }
+
+        .setting-row label { color: #aaa; flex: 1; }
+
+        .setting-row input {
+            width: 80px;
+            background: #111;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.82rem;
+            text-align: right;
+        }
+
+        #saveSettings {
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        /* Video list */
+        .video-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #222;
+            font-size: 0.82rem;
+            color: #ccc;
+        }
+
+        .video-entry:last-child { border-bottom: none; }
+        .video-entry .size { color: #666; }
+
+        #noVideos { color: #555; font-size: 0.82rem; }
+
+        /* Endpoints */
+        .endpoint {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .endpoint span { color: #64b5f6; }
+
+        /* Pool result */
+        #poolResult { font-size: 0.82rem; color: #aaa; margin-top: 6px; }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 0.72rem;
+            color: #444;
+            max-width: 960px;
+        }
+
+        /* Session button */
+        .session-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            max-width: 960px;
+            margin-bottom: 16px;
+        }
+
+        #btnSession {
+            padding: 10px 32px;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            border-radius: 4px;
+        }
+
+        #btnSession.start { border-color: #4caf50; color: #4caf50; }
+        #btnSession.stop  { border-color: #f44336; color: #f44336; }
+
+        #sessionLabel { font-size: 0.82rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<h1>AR WELDING SERVER — DASHBOARD</h1>
+
+<!-- Single START / STOP button that controls all three toggles at once -->
+<div class="session-bar">
+    <button id="btnSession" class="start" onclick="toggleSession()">START SESSION</button>
+    <span id="sessionLabel">All streams are OFF — connect glasses, adjust settings, then press Start.</span>
+</div>
+
+<div class="grid">
+
+    <!-- STATUS -->
+    <div class="card">
+        <h2>Status</h2>
+        <div class="status-row"><div class="dot grey" id="dot-python"></div> Python AI reachable</div>
+        <div class="status-row"><div class="dot grey" id="dot-ws"></div> Glasses WebSocket connected</div>
+        <div class="status-row"><div class="dot grey" id="dot-clients"></div> <span id="label-clients">0 glasses on SSE stream</span></div>
+        <div class="status-row"><div class="dot grey" id="dot-frames"></div> <span id="label-frames">0 frames this session</span></div>
+        <div id="poolResult">Last pool detection: —</div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="card">
+        <h2>Controls</h2>
+        <div class="toggle-row">
+            <span>Polling (DataGetter → Python AI)</span>
+            <button id="btn-polling" onclick="toggle('polling')">—</button>
+        </div>
+        <div class="toggle-row">
+            <span>Streaming (SSE → Glasses)</span>
+            <button id="btn-streaming" onclick="toggle('streaming')">—</button>
+        </div>
+        <div class="toggle-row">
+            <span>Tracking (Pool detection)</span>
+            <button id="btn-tracking" onclick="toggle('tracking')">—</button>
+        </div>
+    </div>
+
+    <!-- DETECTOR SETTINGS -->
+    <div class="card">
+        <h2>Detector Settings</h2>
+        <div class="setting-row">
+            <label>Brightness threshold (0-255)</label>
+            <input type="number" id="s-brightnessThreshold" min="0" max="255">
+        </div>
+        <div class="setting-row">
+            <label>Blur kernel (odd: 3,5,7...)</label>
+            <input type="number" id="s-blurKernel" min="3" max="21" step="2">
+        </div>
+        <div class="setting-row">
+            <label>Morph kernel size</label>
+            <input type="number" id="s-morphKernel" min="1" max="21">
+        </div>
+        <div class="setting-row">
+            <label>Min blob area (px²)</label>
+            <input type="number" id="s-minBlobArea" min="1">
+        </div>
+        <div class="setting-row">
+            <label>Min circularity (0.0-1.0)</label>
+            <input type="number" id="s-minCircularity" min="0" max="1" step="0.05">
+        </div>
+        <div class="setting-row">
+            <label>Video framerate (fps)</label>
+            <input type="number" id="s-videoFramerate" min="1" max="120">
+        </div>
+        <button id="saveSettings" onclick="saveSettings()">Save Settings</button>
+    </div>
+
+    <!-- RECORDINGS -->
+    <div class="card">
+        <h2>Recordings</h2>
+        <div id="videoList"><span id="noVideos">No recordings yet.</span></div>
+    </div>
+
+    <!-- ENDPOINTS -->
+    <div class="card full">
+        <h2>Endpoints</h2>
+        <div class="endpoint">SSE stream &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span>http://sse-server.local:9999/stream</span> &nbsp;— glasses connect here to receive data</div>
+        <div class="endpoint">WebSocket &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span>ws://sse-server.local:9999/frames</span> &nbsp;— glasses send camera frames here</div>
+        <div class="endpoint">Pool detection &nbsp; <span>http://127.0.0.1:9999/pool</span> &nbsp;— pool_detector.py posts results here</div>
+        <div class="endpoint">Settings API &nbsp;&nbsp;&nbsp; <span>http://127.0.0.1:9999/api/settings</span> &nbsp;— read by pool_detector.py on startup</div>
+        <div class="endpoint">Frame count &nbsp;&nbsp;&nbsp; <span>http://127.0.0.1:9999/frames/count</span></div>
+    </div>
+
+</div>
+
+<div class="footer">Auto-refreshes every 2 seconds &nbsp;|&nbsp; AR Welding Guidance System — Thesis Remy Lenaerts</div>
+
+<script>
+    // ── Status polling ────────────────────────────────────────────────────────
+
+    function dot(id, on) {
+        const el = document.getElementById(id);
+        el.className = 'dot ' + (on ? 'green' : 'red');
+    }
+
+    function refreshStatus() {
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(s => {
+                dot('dot-python',  s.pythonAiReachable);
+                dot('dot-ws',      s.websocketActive);
+                dot('dot-clients', s.connectedClients > 0);
+                dot('dot-frames',  s.framesThisSession > 0);
+
+                document.getElementById('label-clients').textContent =
+                    s.connectedClients + ' glasses on SSE stream';
+                document.getElementById('label-frames').textContent =
+                    s.framesThisSession + ' frames this session';
+                document.getElementById('poolResult').textContent =
+                    'Last pool detection: ' + s.lastPoolResult;
+
+                setBtn('btn-polling',   s.pollingEnabled);
+                setBtn('btn-streaming', s.streamingEnabled);
+                setBtn('btn-tracking',  s.trackingEnabled);
+
+                // Keep the session button in sync with the actual state
+                const allOn = s.pollingEnabled && s.streamingEnabled && s.trackingEnabled;
+                if (allOn !== sessionActive) {
+                    sessionActive = allOn;
+                    updateSessionButton();
+                }
+            })
+            .catch(() => {});
+    }
+
+    function setBtn(id, enabled) {
+        const btn = document.getElementById(id);
+        btn.textContent = enabled ? 'ON' : 'OFF';
+        btn.className   = enabled ? 'on' : 'off';
+    }
+
+    // ── Session button — starts or stops all three streams at once ────────────
+
+    // Tracks the intended session state so we know whether to start or stop
+    let sessionActive = false;
+
+    function toggleSession() {
+        // If session is not active, enable all three. If active, disable all three.
+        const targets = sessionActive
+            ? ['polling', 'streaming', 'tracking']   // stop — turn all off
+            : ['polling', 'streaming', 'tracking'];  // start — turn all on
+
+        // We need to toggle only the ones that are not already in the desired state.
+        // Simplest approach: fetch status first, then toggle only what needs changing.
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(s => {
+                const want = !sessionActive; // desired state for all three
+                const promises = [];
+                if (s.pollingEnabled   !== want) promises.push(fetch('/api/toggle/polling',   { method: 'POST' }));
+                if (s.streamingEnabled !== want) promises.push(fetch('/api/toggle/streaming', { method: 'POST' }));
+                if (s.trackingEnabled  !== want) promises.push(fetch('/api/toggle/tracking',  { method: 'POST' }));
+                return Promise.all(promises);
+            })
+            .then(() => {
+                sessionActive = !sessionActive;
+                updateSessionButton();
+                refreshStatus();
+            })
+            .catch(() => {});
+    }
+
+    function updateSessionButton() {
+        const btn   = document.getElementById('btnSession');
+        const label = document.getElementById('sessionLabel');
+        if (sessionActive) {
+            btn.textContent = 'STOP SESSION';
+            btn.className   = 'stop';
+            label.textContent = 'Session is ACTIVE — all streams running.';
+        } else {
+            btn.textContent = 'START SESSION';
+            btn.className   = 'start';
+            label.textContent = 'All streams are OFF — connect glasses, adjust settings, then press Start.';
+        }
+    }
+
+    // ── Individual toggles ────────────────────────────────────────────────────
+
+    function toggle(name) {
+        fetch('/api/toggle/' + name, { method: 'POST' })
+            .then(() => refreshStatus())
+            .catch(() => {});
+    }
+
+    // ── Settings ──────────────────────────────────────────────────────────────
+
+    function loadSettings() {
+        fetch('/api/settings')
+            .then(r => r.json())
+            .then(s => {
+                document.getElementById('s-brightnessThreshold').value = s.brightnessThreshold;
+                document.getElementById('s-blurKernel').value          = s.blurKernel;
+                document.getElementById('s-morphKernel').value         = s.morphKernel;
+                document.getElementById('s-minBlobArea').value         = s.minBlobArea;
+                document.getElementById('s-minCircularity').value      = s.minCircularity;
+                document.getElementById('s-videoFramerate').value      = s.videoFramerate;
+            })
+            .catch(() => {});
+    }
+
+    function saveSettings() {
+        const body = {
+            brightnessThreshold: parseInt(document.getElementById('s-brightnessThreshold').value),
+            blurKernel:          parseInt(document.getElementById('s-blurKernel').value),
+            morphKernel:         parseInt(document.getElementById('s-morphKernel').value),
+            minBlobArea:         parseInt(document.getElementById('s-minBlobArea').value),
+            minCircularity:      parseFloat(document.getElementById('s-minCircularity').value),
+            videoFramerate:      parseInt(document.getElementById('s-videoFramerate').value)
+        };
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }).then(() => {
+            document.getElementById('saveSettings').textContent = 'Saved ✓';
+            setTimeout(() => document.getElementById('saveSettings').textContent = 'Save Settings', 1500);
+        }).catch(() => {});
+    }
+
+    // ── Video list ────────────────────────────────────────────────────────────
+
+    function loadVideos() {
+        fetch('/api/videos')
+            .then(r => r.json())
+            .then(videos => {
+                const el = document.getElementById('videoList');
+                if (videos.length === 0) {
+                    el.innerHTML = '<span id="noVideos">No recordings yet.</span>';
+                    return;
+                }
+                el.innerHTML = videos.map(v =>
+                    `<div class="video-entry">
+                        <span>${v.timestamp}</span>
+                        <span>${v.name}</span>
+                        <span class="size">${v.size}</span>
+                    </div>`
+                ).join('');
+            })
+            .catch(() => {});
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    loadSettings();
+    loadVideos();
+    refreshStatus();
+
+    setInterval(refreshStatus, 2000);  // status refreshes every 2 seconds
+    setInterval(loadVideos,    5000);  // video list refreshes every 5 seconds
+</script>
+</body>
+</html>

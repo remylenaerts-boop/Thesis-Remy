@@ -33,8 +33,10 @@ build/
 .vscode/
 thesis_server_text.txt
 thesis_flowcharts.txt
+thesis_tracking_methodology.txt
 
 ### Generated at runtime — created automatically when the server starts ###
 frames/
+annotated/
 videos/
 
