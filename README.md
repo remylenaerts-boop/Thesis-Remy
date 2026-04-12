@@ -81,6 +81,27 @@ Required plugins (install from *Settings → Plugins*):
 
 Maven is the build tool used to compile and run the project. You do **not** need to install it separately — the project includes a Maven wrapper (`mvnw`) that downloads the correct version automatically.
 
+### 5. Windows Firewall rule (Windows only)
+
+The server advertises itself on the local Wi-Fi network so that the Android glasses can find it by name (`sse-server.local`) without needing to know the server's IP address. It does this using a technology called **mDNS** (multicast DNS) — the same mechanism your phone uses to find a Chromecast or wireless printer on your home network.
+
+mDNS works by sending a small broadcast message over the network on **UDP port 5353**. The glasses send a message that essentially says *"is there a device called sse-server.local on this network?"*. The server is listening for exactly these questions and replies *"yes, that's me, here is my IP address"*. After that exchange the glasses know where to connect.
+
+On a fresh Windows installation the built-in firewall blocks all incoming network traffic by default — including these mDNS broadcast messages. The glasses ask the question, but Windows silently drops it before the server ever hears it. The result is that `sse-server.local` never resolves to an IP address and the connection never happens.
+
+**To fix this, add one inbound firewall rule:**
+
+1. Press `Windows + R`, type `wf.msc`, press Enter — this opens *Windows Defender Firewall with Advanced Security*
+2. Click **Inbound Rules** in the left panel
+3. Click **New Rule...** in the right panel
+4. Select **Port** → click Next
+5. Select **UDP**, enter `5353` in the specific local ports field → click Next
+6. Select **Allow the connection** → click Next
+7. Leave all three boxes checked (Domain, Private, Public) → click Next
+8. Give it a name such as `mDNS - Thesis AR Server` → click Finish
+
+This only needs to be done once per machine. After adding the rule the glasses will be able to resolve `sse-server.local` automatically as long as both devices are on the same Wi-Fi network.
+
 ---
 
 ## Getting started
@@ -155,7 +176,7 @@ Both folders are created automatically in the project root when the server start
 ## Troubleshooting
 
 **The glasses cannot find the server by name (`sse-server.local`)**
-mDNS resolution works reliably on Android and macOS. On Windows it may require the Bonjour service. As a fallback, connect using the server's IP address directly (find it with `ipconfig` on Windows or `ifconfig` on macOS/Linux).
+Make sure you have added the UDP 5353 inbound firewall rule described in requirement 5 above. As a fallback, connect using the server's IP address directly — find it by running `ipconfig` in a terminal on Windows or `ifconfig` on macOS/Linux, and look for the IPv4 address on your Wi-Fi adapter.
 
 **Video stitching fails / no MP4 is created**
 Make sure ffmpeg is installed (`winget install ffmpeg` on Windows). If ffmpeg is missing, the frames are kept in `frames/` so no data is lost — you can stitch manually:

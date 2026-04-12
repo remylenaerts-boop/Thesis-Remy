@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+thesis_server_text.txt
+thesis_flowcharts.txt

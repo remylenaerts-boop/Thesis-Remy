@@ -5,22 +5,34 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/*
+    Prints a short summary to the console when the server finishes starting up.
+    This makes it easy to confirm that the server is running and to see the
+    URL the glasses should connect to, without having to dig through Spring's
+    own startup logs.
+*/
 @Configuration
 public class StartupLogger {
-@Value("${server.port}")
+
+    // These values are read from application.properties at startup
+    @Value("${server.port}")
     private String port;
 
-    @Value("${server.name:sse-server}")
-    // default = "sse-server" if not defined
+    @Value("${server.name:sse-server}") // falls back to "sse-server" if not set in application.properties
     private String serverName;
 
+    /*
+        ApplicationRunner runs once, right after the application has fully started.
+        It is the right place for any "we are ready" logging.
+    */
     @Bean
     public ApplicationRunner logStartup() {
         return args -> {
             System.out.println("======================================");
-            System.out.println("Server is running on port " + port);
-            System.out.println("Server name: " + serverName);
-            System.out.println("URL: http://" + serverName + ":" + port + "/stream");
+            System.out.println("Server is running on port: " + port);
+            System.out.println("mDNS name:                 " + serverName + ".local");
+            System.out.println("SSE endpoint:              http://" + serverName + ":" + port + "/stream");
+            System.out.println("WebSocket endpoint:        ws://"   + serverName + ":" + port + "/frames");
             System.out.println("======================================");
         };
     }

@@ -1,7 +1,5 @@
 package com.example.thesisremy.serviceandcomponents;
 
-
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -9,44 +7,67 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-@Service //  Makes this class a service
+/*
+    This service manages all active SSE connections and is responsible for
+    pushing data out to the Android glasses.
+
+    SSE (Server-Sent Events) is a one-way communication channel: the server
+    pushes updates to the client over a regular HTTP connection that is kept open.
+    It is simpler than WebSocket for this use case because we only need to send
+    data in one direction — from server to glasses.
+
+    Every time a glasses device connects via GET /stream, it gets its own SseEmitter
+    object. All active emitters are kept in a list. When new welding data arrives,
+    broadcast() loops through the list and sends the data to each connected device.
+*/
+@Service
 public class Broadcast {
 
     /*
+        The list of all currently connected clients.
 
-    Every client that entered though the Controller door gets an instance of this and gets added to the List.
+        CopyOnWriteArrayList is used here instead of a regular ArrayList because
+        connections can be added or removed at the same time as data is being sent
+        (concurrency). A regular ArrayList is not safe in that situation and can
+        throw exceptions or corrupt the list.
 
-    Declares a List of SseEmitters, because there can be multiple people joining or leaving. 
-    We need a thread safe list implementation because of concurrency --> multiple tasks (the joining or leaving) happening at the same time.
-    The List<SseEmitter> has the thread safe implementation, like the name of CopyOnWriteArrayList implies, 
-    when the array list changes it makes a fresh copy of the list and applies the changes. This way we can always read a stable version of the list.
+        CopyOnWriteArrayList solves this by making a fresh copy of the list every
+        time it is modified. Reads (like looping during broadcast) always see a
+        stable snapshot, so no crash can occur.
+    */
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
-     */
-    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>(); 
-
-
-    // Method to add clients to the emitter list and remove them when needed
+    /*
+        Called by ControllerClass when a new client connects to GET /stream.
+        Creates a new emitter for that client and registers three cleanup callbacks
+        so the emitter is automatically removed from the list when the connection ends —
+        whether that happens normally, due to an error, or because of a timeout.
+    */
     public SseEmitter addEmitter() {
-        
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); // no timeout — keep the connection open indefinitely
         emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onError(e -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
+        emitter.onCompletion(() -> emitters.remove(emitter)); // client disconnected cleanly
+        emitter.onError(e    -> emitters.remove(emitter));   // connection dropped unexpectedly
+        emitter.onTimeout(() -> emitters.remove(emitter));   // connection timed out
         return emitter;
-
     }
 
-    // Method for the broadcasting of the data to all clients in the list
-        // We have to use the try and catch to know if clients are still there
+    /*
+        Sends a JSON string to every connected client.
+
+        removeIf() is used here as a convenient way to send and clean up in one pass:
+        if sending to a client fails (IOException), it means that client has gone away
+        and we return true to have it removed from the list. If sending succeeds we
+        return false and it stays in the list.
+    */
     public void broadcast(String json) {
         emitters.removeIf(emitter -> {
             try {
-                emitter.send(SseEmitter.event().data(json)); //.event() from the SseEmitter API, you can still add ID, name ... just check the documentation (at the bottom you can see the interface)
-                return false;
+                emitter.send(SseEmitter.event().data(json));
+                return false; // send succeeded — keep this client in the list
             } catch (IOException ignored) {
                 emitter.complete();
-                return true;
+                return true;  // send failed — remove this client from the list
             }
         });
     }
