@@ -66,16 +66,19 @@ After installing, you do **not** need to configure anything — the server finds
 
 ### 3. An IDE (recommended)
 
-**IntelliJ IDEA Community Edition** (free) is the recommended IDE for this project.
-Download: https://www.jetbrains.com/idea/download
+**Visual Studio Code** (free) is the recommended IDE for this project.
+- Download: https://code.visualstudio.com/
 
-Required plugins (install from *Settings → Plugins*):
-- **Java** — built into IntelliJ, no action needed
-- **Spring Boot** — search "Spring" in the plugin marketplace, install *Spring Boot*
-
-**VS Code** also works. Install these extensions:
+Required plugins (install from *Settings → Extentions*):
 - Extension Pack for Java (by Microsoft)
 - Spring Boot Extension Pack (by VMware)
+  
+**IntelliJ IDEA Community Edition** also works. 
+- Download: https://www.jetbrains.com/idea/download
+Install these plugins:
+- **Java** — built into IntelliJ, no action needed
+- **Spring Boot** — search "Spring" in the plugin marketplace, install *Spring Boot*
+  
 
 ### 4. Maven
 
@@ -93,8 +96,9 @@ cd Thesis-Remy
 
 ### Step 2 — Open in your IDE
 
-- **IntelliJ:** File → Open → select the `Thesis-Remy` folder. IntelliJ detects the `pom.xml` automatically and imports the project.
 - **VS Code:** File → Open Folder → select the `Thesis-Remy` folder.
+- **IntelliJ:** File → Open → select the `Thesis-Remy` folder. IntelliJ detects the `pom.xml` automatically and imports the project.
+
 
 Wait for the IDE to finish downloading dependencies (progress bar at the bottom).
 
@@ -137,7 +141,7 @@ All configuration is in [`src/main/resources/application.properties`](src/main/r
 | `server.port` | `9999` | Port the server listens on |
 | `spring.application.name` | `Thesis-Remy` | Application name |
 
-The external AI data source is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `DataGetter.java`. Change this if your AI program runs on a different port.
+The external DAQ data source is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `DataGetter.java`. Change this if the DAQ program runs on a different port.
 
 ---
 
