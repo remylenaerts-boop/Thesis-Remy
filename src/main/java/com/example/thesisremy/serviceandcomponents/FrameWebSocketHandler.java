@@ -16,20 +16,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
-    Handles the WebSocket connection on the /frames endpoint.
+    Receives the camera feed from the Android glasses over WebSocket.
 
-    Session lifecycle:
-      1. Glasses connect         → afterConnectionEstablished()
-      2. Frames arrive as bytes  → handleBinaryMessage()  — saved to frames/
-      3. Glasses disconnect      → afterConnectionClosed() — stitch video → save to videos/ → clear frames/
+    Each incoming frame is saved as a JPEG to frames/.
+    When the glasses disconnect, all saved frames are automatically stitched
+    into a timestamped MP4 in videos/, and the frames/ folder is cleared
+    so the next session always starts fresh.
 
-    After each session the frames/ folder is empty and a timestamped .mp4 is added to videos/.
-    The frame counter resets to 0 so the next session always starts from frame_00000.jpg.
-
-    Requires ffmpeg — either on the system PATH, or installed via:
-        winget install ffmpeg   (Windows)
-        brew install ffmpeg     (macOS)
-        apt install ffmpeg      (Linux)
+    Requires ffmpeg — install with: winget install ffmpeg (Windows)
+                                     brew install ffmpeg  (macOS/Linux)
 */
 @Component
 public class FrameWebSocketHandler extends BinaryWebSocketHandler {
@@ -37,149 +32,102 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     private static final String FRAMES_DIR = "frames/";
     private static final String VIDEOS_DIR = "videos/";
 
-    // AtomicInteger so the counter stays correct even if two frames arrive at the same time
+    // Counts incoming frames — AtomicInteger keeps the count correct if frames arrive simultaneously
     private final AtomicInteger frameCounter = new AtomicInteger(0);
 
     public FrameWebSocketHandler() {
-        // Create both directories on startup if they don't exist yet
         new File(FRAMES_DIR).mkdirs();
         new File(VIDEOS_DIR).mkdirs();
     }
 
-    // Called once when the glasses successfully open the WebSocket connection
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         System.out.println("[WS] Glasses connected — session: " + session.getId());
     }
 
-    // Called every time a frame arrives from the glasses
+    // Each incoming frame is raw JPEG bytes — save it to disk with a numbered filename
     @Override
-    protected void handleBinaryMessage(WebSocketSession session,
-                                       BinaryMessage message) throws IOException {
-
-        // Copy the payload bytes out of the ByteBuffer
+    protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws IOException {
         byte[] bytes = new byte[message.getPayload().remaining()];
         message.getPayload().get(bytes);
 
-        // Build the filename: frame_00000.jpg, frame_00001.jpg, ...
-        int    index    = frameCounter.getAndIncrement();
-        String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", index);
-
+        String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", frameCounter.getAndIncrement());
         Files.write(Paths.get(filename), bytes);
-        System.out.println("[WS] Saved: " + filename + "  (" + bytes.length + " bytes)");
+        System.out.println("[WS] Saved: " + filename + " (" + bytes.length + " bytes)");
     }
 
-    // Called when the glasses disconnect — triggers stitch + cleanup
+    // When the glasses disconnect, stitch everything into a video and clean up
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         System.out.println("[WS] Glasses disconnected — status: " + status);
 
-        int total = frameCounter.get();
-        if (total == 0) {
-            // Nothing to stitch if no frames were received this session
+        if (frameCounter.get() == 0) {
             System.out.println("[WS] No frames received, skipping video stitch.");
             return;
         }
 
         try {
-            stitchAndClean(total);
+            stitchAndClean();
         } catch (Exception e) {
             System.err.println("[WS] Video stitch failed: " + e.getMessage());
         }
     }
 
-    /*
-        Runs ffmpeg to encode all saved JPEG frames into a single MP4, then deletes the frames.
-
-        Output filename is timestamped so every session produces a unique file, e.g.:
-            videos/video_20260412_143022.mp4
-
-        ffmpeg flags used:
-          -y               overwrite output file without asking (safety net)
-          -framerate 30    treat the image sequence as 30 fps
-          -i frame_%05d    read frame_00000.jpg, frame_00001.jpg, ... in order
-          -c:v libx264     encode with H.264 (widely supported)
-          -pix_fmt yuv420p pixel format required for compatibility with most players
-    */
-    private void stitchAndClean(int frameCount) throws IOException, InterruptedException {
+    // Runs ffmpeg to turn the saved JPEG sequence into an MP4, then clears the frames
+    private void stitchAndClean() throws IOException, InterruptedException {
         String timestamp  = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String outputPath = VIDEOS_DIR + "video_" + timestamp + ".mp4";
 
-        System.out.println("[WS] Stitching " + frameCount + " frames → " + outputPath);
+        System.out.println("[WS] Stitching " + frameCounter.get() + " frames → " + outputPath);
 
-        ProcessBuilder pb = new ProcessBuilder(
-            resolveFfmpeg(), "-y",
-            "-framerate", "30",
-            "-i", FRAMES_DIR + "frame_%05d.jpg",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            outputPath
-        );
-        pb.redirectErrorStream(true); // merge stdout + stderr into one stream
+        Process process = new ProcessBuilder(
+                resolveFfmpeg(), "-y",
+                "-framerate", "30",
+                "-i", FRAMES_DIR + "frame_%05d.jpg",
+                "-c:v", "libx264",    // H.264 encoding — plays on virtually any device
+                "-pix_fmt", "yuv420p", // required pixel format for broad player compatibility
+                outputPath)
+            .redirectErrorStream(true)
+            .start();
 
-        Process process = pb.start();
+        // Drain ffmpeg output — if we don't read it, the process can freeze on a full pipe buffer
+        process.getInputStream().transferTo(OutputStream.nullOutputStream());
 
-        // Drain ffmpeg output so the process doesn't block on a full pipe buffer
-        try (OutputStream sink = OutputStream.nullOutputStream()) {
-            process.getInputStream().transferTo(sink);
-        }
-
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            System.err.println("[WS] ffmpeg exited with code " + exitCode + " — video may be incomplete.");
-            return; // keep the frames so nothing is lost
+        if (process.waitFor() != 0) {
+            System.err.println("[WS] ffmpeg failed — frames kept in " + FRAMES_DIR + " so nothing is lost.");
+            return;
         }
 
         System.out.println("[WS] Video saved: " + outputPath);
-
-        // Delete all frame files and reset the counter so the next session starts fresh
         clearFrames();
     }
 
     /*
-        Finds the ffmpeg executable without requiring it to be on the system PATH.
-
-        Resolution order:
-          1. "ffmpeg" — works if ffmpeg is on PATH (Linux, macOS, or Windows with PATH configured)
-          2. winget Links folder — winget always creates a shortcut here for every user on Windows,
-             so "winget install ffmpeg" is all that is needed, no manual PATH editing required
-
-        If neither location works, the stitchAndClean() call will throw an IOException and
-        the frames will be kept on disk so no data is lost.
+        Tries to find ffmpeg in two places:
+          1. The system PATH — works on any OS where ffmpeg was installed normally
+          2. The winget shortcut folder — Windows users who ran "winget install ffmpeg"
+             have ffmpeg here automatically, no PATH setup needed
     */
     private String resolveFfmpeg() {
-        // 1. Check if ffmpeg is available on the system PATH
         try {
             new ProcessBuilder("ffmpeg", "-version").start().destroy();
-            return "ffmpeg";
+            return "ffmpeg"; // found on PATH
         } catch (IOException ignored) {}
 
-        // 2. Fall back to the standard winget install location for the current user
-        String wingetPath = System.getProperty("user.home")
-            + "/AppData/Local/Microsoft/WinGet/Links/ffmpeg.exe";
-        if (new File(wingetPath).exists()) {
-            return wingetPath;
-        }
-
-        // No ffmpeg found — return "ffmpeg" anyway so the error message from the OS is clear
-        return "ffmpeg";
+        String wingetPath = System.getProperty("user.home") + "/AppData/Local/Microsoft/WinGet/Links/ffmpeg.exe";
+        return new File(wingetPath).exists() ? wingetPath : "ffmpeg";
     }
 
-    // Deletes every frame_xxxxx.jpg in frames/ and resets the counter to 0
+    // Deletes all saved frames and resets the counter so the next session starts from frame_00000
     private void clearFrames() {
-        File   dir   = new File(FRAMES_DIR);
-        File[] files = dir.listFiles((d, name) -> name.matches("frame_\\d{5}\\.jpg"));
-        int deleted  = 0;
-        if (files != null) {
-            for (File f : files) {
-                if (f.delete()) deleted++;
-            }
-        }
+        File[] files = new File(FRAMES_DIR).listFiles((d, name) -> name.matches("frame_\\d{5}\\.jpg"));
+        int deleted = 0;
+        if (files != null) for (File f : files) if (f.delete()) deleted++;
         frameCounter.set(0);
-        System.out.println("[WS] Cleared " + deleted + " frames, counter reset to 0.");
+        System.out.println("[WS] Cleared " + deleted + " frames, ready for next session.");
     }
 
-    // Exposed so ControllerClass can serve the frame count via GET /frames/count
+    // Used by ControllerClass to serve GET /frames/count
     public int getFrameCount() {
         return frameCounter.get();
     }

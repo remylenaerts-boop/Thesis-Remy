@@ -9,12 +9,17 @@ import com.example.thesisremy.serviceandcomponents.Broadcast;
 import com.example.thesisremy.serviceandcomponents.FrameWebSocketHandler;
 
 /*
-    You can say that this class is the door of the server, clients can enter from here
-    and can get added to the receiving list through making an instance of the Broadcast service.
+    This is the front door of the server — all HTTP communication with the outside world
+    starts here. Two endpoints are exposed:
 
-    /stream  → SSE endpoint, Android glasses receive JSON data from here
-    /frames  → WebSocket endpoint, Android glasses send camera frames here
-               (registered in WebSocketConfig, handled in FrameWebSocketHandler)
+      GET /stream        — the Android glasses connect here to receive live welding data
+                           over a persistent SSE connection (Server-Sent Events).
+
+      GET /frames/count  — a simple diagnostic endpoint to check how many camera frames
+                           have been received in the current session without checking the disk.
+
+    Note: the WebSocket endpoint /frames is NOT defined here. It is registered separately
+    in WebSocketConfig because WebSocket connections are handled differently from regular HTTP.
 */
 @RestController
 public class ControllerClass {
@@ -28,16 +33,22 @@ public class ControllerClass {
         this.frameWebSocketHandler = frameWebSocketHandler;
     }
 
-    // Existing SSE endpoint — unchanged
-    // Android glasses connect here to receive JSON data from the server
+    /*
+        When the glasses make a GET request to /stream, this method hands them
+        an SseEmitter — essentially an open channel through which the server can
+        push data to the glasses at any time. The emitter is registered in Broadcast
+        so that future data packets find their way to this specific connection.
+    */
     @GetMapping("/stream")
     public SseEmitter stream() {
         return broadcast.addEmitter();
     }
 
-    // Returns how many frames have been saved so far
-    // Useful to verify frames are arriving without checking the disk manually
-    // Example: GET http://localhost:8080/frames/count  →  { "framesSaved": 42 }
+    /*
+        Returns the number of frames saved so far in the current session.
+        Handy for quickly checking during a demo whether frames are coming in.
+        Example response: { "framesSaved": 42 }
+    */
     @GetMapping("/frames/count")
     public ResponseEntity<String> frameCount() {
         int count = frameWebSocketHandler.getFrameCount();

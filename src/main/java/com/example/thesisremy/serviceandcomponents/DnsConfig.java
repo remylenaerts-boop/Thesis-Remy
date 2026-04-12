@@ -10,22 +10,38 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 
-
 /*
+    Registers the server on the local network under the name "sse-server"
+    so the Android glasses can find it by name instead of by IP address.
 
-This Component class makes the server reachable to the name sse-server so that we have abstraction from the IP adress. 
-to check the connection in your browser type this : http://localhost:9999/stream 
-You cant look up http://sse-server:9999/stream on windows, only linux and macOS support this, you do need to add .local after sse-server to check on the same device
+    The problem this solves: every time the server computer connects to Wi-Fi
+    it may get a different IP address (e.g. 192.168.1.42 today, 192.168.1.67 tomorrow).
+    Hardcoding an IP address in the glasses app would break every time this happens.
 
+    The solution is mDNS (multicast DNS) — the same technology that lets you find
+    a printer or Chromecast on your home network by name. The server broadcasts its
+    presence on the local network, and any device that asks "where is sse-server.local?"
+    gets the current IP address back automatically.
+
+    After this runs, the glasses can always connect to sse-server.local:9999/stream
+    regardless of what IP address the server has at that moment.
+
+    Note for Windows users: the firewall must allow inbound UDP on port 5353 for mDNS
+    to work. See the README for the one-time setup step.
 */
 @Component
 public class DnsConfig {
 
-    // https://docs.spring.io/spring-framework/reference/core/beans/annotation-config/postconstruct-and-predestroy-annotations.html
-    @PostConstruct // this annotated method is invoked automatically once all the beans and its dependencies are injected
+    /*
+        @PostConstruct means this method runs automatically once Spring has finished
+        setting up all components. This is the right place for any startup logic
+        that needs the full application to be ready first.
+    */
+    @PostConstruct
     public void registerService() throws IOException {
         JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());
 
+        // Describe the service: it is an HTTP service, reachable on port 9999, at path /stream
         ServiceInfo serviceInfo = ServiceInfo.create(
                 "_http._tcp.local.",
                 "sse-server",
@@ -34,6 +50,6 @@ public class DnsConfig {
         );
 
         jmdns.registerService(serviceInfo);
-        System.out.println("Server: sse-server.local");
+        System.out.println("[mDNS] Server registered as: sse-server.local");
     }
 }
