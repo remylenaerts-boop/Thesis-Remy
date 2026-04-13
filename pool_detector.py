@@ -40,23 +40,23 @@ JAVA_ENDPOINT = "http://127.0.0.1:9999/pool"   # Java endpoint that receives res
 # Threshold — pixels brighter than this value (0-255) are treated as part of the blob.
 # 150 works well for a flashlight through a camera — raise toward 200+ for a real welding arc.
 # If nothing is being detected, lower this value first.
-BRIGHTNESS_THRESHOLD = 150
+BRIGHTNESS_THRESHOLD = 200
 
 # Gaussian blur kernel size — must be an odd number (e.g. 5, 7, 9).
 # Higher = more smoothing. Helps clean up JPEG compression noise before thresholding.
-BLUR_KERNEL = 7
+BLUR_KERNEL = 5
 
 # Morphological kernel size — controls how aggressively erosion/dilation operate.
 # Higher = stronger effect. 5 is a good starting point for small noise specks.
 MORPH_KERNEL = 5
 
 # Minimum blob area in pixels — anything smaller than this is ignored as noise.
-MIN_BLOB_AREA = 100
+MIN_BLOB_AREA = 50
 
 # Circularity threshold — 1.0 is a perfect circle, 0.0 is a straight line.
 # The weld pool and flashlight are both close to circular.
 # Reject anything below this value to filter out non-circular reflections.
-MIN_CIRCULARITY = 0.5
+MIN_CIRCULARITY = 0.4
 
 # How often the folder is scanned for new frames (seconds).
 # 0.1 = 10 times per second, which is fast enough for smooth tracking.
@@ -89,11 +89,20 @@ def detect_pool(image_path):
     """
 
     no_detection = {"poolDetected": False, "poolX": 0, "poolY": 0, "poolRadius": 0}
+    annotated_path = ANNOTATED_DIR + os.path.basename(image_path)
 
-    # Load as grayscale — color is not needed for brightness-based detection
-    frame = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if frame is None:
+    # Load both grayscale (for detection) and color (for annotation output)
+    frame       = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    color_frame = cv2.imread(image_path, cv2.IMREAD_COLOR)
+
+    if frame is None or color_frame is None:
         # File may still be being written by Java — skip this frame
+        return no_detection
+
+    def save_and_return_no_detection():
+        # Always write a frame to annotated/ so the ffmpeg sequence is never broken,
+        # even when no pool is detected.  Raw frame = no circles drawn.
+        cv2.imwrite(annotated_path, color_frame)
         return no_detection
 
     height, width = frame.shape
@@ -135,7 +144,7 @@ def detect_pool(image_path):
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if not contours:
-        return no_detection
+        return save_and_return_no_detection()
 
     # ── Step 6: Filter by area and circularity ───────────────────────────────
     # For each contour, compute its area and circularity.
@@ -158,7 +167,7 @@ def detect_pool(image_path):
         valid.append((area, contour))
 
     if not valid:
-        return no_detection
+        return save_and_return_no_detection()
 
     # ── Step 7: Take the largest valid contour ───────────────────────────────
     # If multiple round blobs pass the filter, the largest one is assumed to
@@ -168,22 +177,15 @@ def detect_pool(image_path):
     # ── Step 8: Compute center and radius ────────────────────────────────────
     (cx, cy), radius = cv2.minEnclosingCircle(largest_contour)
 
-    # ── Step 9: Draw the detection circle on the original color frame ────────
-    # We reload the original frame in color so the annotation looks clear on the video.
+    # ── Step 9: Draw the detection circle on the color frame ─────────────────
     # A green circle marks the detected pool boundary.
     # A small red dot marks the exact center point.
-    color_frame = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    if color_frame is not None:
-        cx_int = int(cx)
-        cy_int = int(cy)
-        r_int  = int(radius)
-        cv2.circle(color_frame, (cx_int, cy_int), r_int,  (0, 255, 0),   2)  # green circle
-        cv2.circle(color_frame, (cx_int, cy_int), 4,      (0, 0,   255), -1) # red center dot
-
-        # Save the annotated frame to annotated/ with the same filename as the raw frame
-        # Java will stitch from annotated/ instead of frames/ so the video shows the circles
-        annotated_path = ANNOTATED_DIR + os.path.basename(image_path)
-        cv2.imwrite(annotated_path, color_frame)
+    cx_int = int(cx)
+    cy_int = int(cy)
+    r_int  = int(radius)
+    cv2.circle(color_frame, (cx_int, cy_int), r_int, (0, 255, 0),   2)  # green circle
+    cv2.circle(color_frame, (cx_int, cy_int), 4,     (0, 0,   255), -1) # red center dot
+    cv2.imwrite(annotated_path, color_frame)
 
     # Normalize to 0.0-1.0 so the result is independent of image resolution
     return {

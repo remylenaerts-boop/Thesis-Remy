@@ -83,9 +83,9 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     // Each incoming frame is raw JPEG bytes — save it to disk with a numbered filename
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws IOException {
-        // Do not save frames until the session is started from the dashboard.
-        // This prevents filling the disk while the welder is still setting up.
-        if (!serverState.isStreamingEnabled()) return;
+        // Only save frames when camera capture is explicitly enabled from the dashboard.
+        // When disabled the glasses are also told to stop sending, so this is a safety net.
+        if (!serverState.isCameraEnabled()) return;
 
         byte[] bytes = new byte[message.getPayload().remaining()];
         message.getPayload().get(bytes);

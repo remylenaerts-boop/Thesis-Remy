@@ -2,416 +2,1132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AR Welding Server — Dashboard</title>
+    <title>AR Welding — Dashboard</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:       #003d6b;
+            --navy-dark:  #002d50;
+            --blue:       #0072b5;
+            --blue-light: #e8f2fa;
+            --bg:         #f4f7fa;
+            --card:       #ffffff;
+            --border:     #d9e4ef;
+            --text:       #1a2b3c;
+            --text-2:     #4a6074;
+            --text-3:     #9aafbf;
+            --success:    #2d8a4e;
+            --success-bg: #eaf7ee;
+            --danger:     #c0392b;
+            --danger-bg:  #fdf0ee;
+            --warn:       #c07a00;
+            --warn-bg:    #fef9e6;
+            --r:          8px;
+            --sw:         236px;
+        }
 
         body {
-            font-family: monospace;
-            background: #0d0d0d;
-            color: #e0e0e0;
-            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
         }
 
-        h1 { font-size: 1.3rem; color: #ffffff; margin-bottom: 24px; letter-spacing: 2px; }
-        h2 { font-size: 0.85rem; color: #888; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            max-width: 960px;
+        /* ── SIDEBAR ─────────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sw);
+            min-width: var(--sw);
+            background: var(--navy);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        .card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
-            padding: 16px;
+        .sidebar-logo {
+            padding: 20px 20px 18px;
+            border-bottom: 1px solid rgba(255,255,255,.12);
         }
 
-        .card.full { grid-column: 1 / -1; }
+        .ku-logo-img {
+            max-width: 180px;
+            height: auto;
+            display: block;
+        }
 
-        /* Status dots */
-        .status-row {
+        .sidebar-subtitle {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,.45);
+            padding-left: 2px;
+            margin-top: 10px;
+        }
+
+        nav {
+            flex: 1;
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,.3);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 14px 10px 5px;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
+            padding: 9px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,.65);
+            transition: all 0.15s;
+            user-select: none;
         }
 
-        .dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
+        .nav-item:hover  { background: rgba(255,255,255,.08); color: #fff; }
+        .nav-item.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 500; }
+        .nav-icon { width: 18px; text-align: center; font-size: 0.85rem; flex-shrink: 0; }
+
+        .sidebar-footer {
+            padding: 14px;
+            border-top: 1px solid rgba(255,255,255,.12);
+        }
+
+        #btnSession {
+            width: 100%;
+            padding: 11px 16px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        #btnSession.start { background: #ffffff; color: var(--navy); }
+        #btnSession.start:hover { background: #e8f2fa; }
+        #btnSession.stop  { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+        #btnSession.stop:hover { background: rgba(239,68,68,.25); }
+
+        #sessionLabel { font-size: 0.66rem; color: rgba(255,255,255,.35); text-align: center; margin-top: 7px; line-height: 1.4; }
+
+        .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; flex-shrink: 0; animation: pulse 1.4s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+        /* ── MAIN ─────────────────────────────────────────────────── */
+        .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+
+        header {
+            padding: 14px 28px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,61,107,.06);
         }
 
-        .dot.green  { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
-        .dot.red    { background: #f44336; box-shadow: 0 0 6px #f44336; }
-        .dot.grey   { background: #555; }
+        .header-title { font-size: 0.92rem; font-weight: 600; color: var(--text); }
+        .header-sub   { font-size: 0.71rem; color: var(--text-2); margin-top: 2px; }
 
-        /* Toggle buttons */
+        .header-chips { display: flex; align-items: center; gap: 20px; }
+        .chip { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-2); }
+        .dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dot.green { background: var(--success); box-shadow: 0 0 4px var(--success); }
+        .dot.red   { background: var(--danger);  box-shadow: 0 0 4px var(--danger); }
+        .dot.blue  { background: var(--blue);    box-shadow: 0 0 4px var(--blue); }
+        .dot.grey  { background: var(--text-3); }
+
+        /* ── PAGE CONTENT ──────────────────────────────────────────── */
+        .page-content { flex: 1; overflow-y: auto; padding: 22px 28px 32px; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── CARDS ─────────────────────────────────────────────────── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 22px;
+            box-shadow: 0 1px 4px rgba(0,61,107,.06);
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-2);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        /* ── STAT ROW ─────────────────────────────────────────────── */
+        .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,61,107,.05);
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: var(--r) var(--r) 0 0;
+            background: var(--border);
+            transition: background 0.3s;
+        }
+
+        .stat-card.ok::after   { background: var(--success); }
+        .stat-card.err::after  { background: var(--danger); }
+        .stat-card.info::after { background: var(--blue); }
+        .stat-card.warn::after { background: var(--warn); }
+
+        .stat-label { font-size: 0.69rem; color: var(--text-2); margin-bottom: 8px; }
+        .stat-val   { font-size: 1.35rem; font-weight: 700; color: var(--text); line-height: 1; }
+        .stat-val.ok   { color: var(--success); }
+        .stat-val.err  { color: var(--danger); }
+        .stat-val.info { color: var(--blue); }
+        .stat-val.warn { color: var(--warn); }
+        .stat-hint { font-size: 0.68rem; color: var(--text-3); margin-top: 5px; }
+
+        /* ── GRID LAYOUTS ──────────────────────────────────────────── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+        /* ── LIVE DATA GRID ────────────────────────────────────────── */
+        .live-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+        .live-item {
+            background: var(--blue-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+
+        .live-label { font-size: 0.67rem; color: var(--text-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .live-val   { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+        .live-unit  { font-size: 0.72rem; font-weight: 400; color: var(--text-2); margin-left: 3px; }
+
+        .pred-ok   { color: var(--success); }
+        .pred-defect { color: var(--danger); }
+
+        /* ── TOGGLE SWITCHES ───────────────────────────────────────── */
         .toggle-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        button {
-            background: #2a2a2a;
-            color: #e0e0e0;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 6px 14px;
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-name { font-size: 0.82rem; color: var(--text); }
+        .toggle-desc { font-size: 0.69rem; color: var(--text-2); margin-top: 2px; }
+
+        .sw {
+            width: 40px; height: 21px;
+            background: #ccd8e2;
+            border-radius: 11px;
             cursor: pointer;
-            font-family: monospace;
-            font-size: 0.8rem;
-            transition: background 0.15s;
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
         }
 
-        button:hover { background: #333; }
-        button.on  { border-color: #4caf50; color: #4caf50; }
-        button.off { border-color: #f44336; color: #f44336; }
+        .sw::after {
+            content: '';
+            position: absolute;
+            top: 2.5px; left: 2.5px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
+            transition: transform 0.2s;
+        }
 
-        /* Settings form */
-        .setting-row {
+        .sw.on { background: var(--success); }
+        .sw.on::after { transform: translateX(19px); }
+
+        /* ── DETECTION CARD ─────────────────────────────────────────── */
+        .detection-box {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.82rem;
-            gap: 12px;
-        }
-
-        .setting-row label { color: #aaa; flex: 1; }
-
-        .setting-row input {
-            width: 80px;
-            background: #111;
-            border: 1px solid #333;
-            color: #e0e0e0;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 0.82rem;
-            text-align: right;
-        }
-
-        #saveSettings {
+            gap: 14px;
+            background: var(--blue-light);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 14px;
             margin-top: 12px;
-            width: 100%;
         }
 
-        /* Video list */
-        .video-entry {
+        .det-circle {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 2px solid #ccd8e2;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .det-circle.active { border-color: var(--success); box-shadow: 0 0 8px rgba(45,138,78,.25); }
+        .det-inner { width: 10px; height: 10px; border-radius: 50%; background: #ccd8e2; transition: background 0.3s; }
+        .det-circle.active .det-inner { background: var(--success); }
+        .det-coords { font-size: 0.78rem; line-height: 1.8; color: var(--text-2); }
+        .det-coords strong { color: var(--text); font-weight: 600; }
+
+        /* ── CAMERA DISABLED NOTICE ────────────────────────────────── */
+        .notice {
             display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #222;
-            font-size: 0.82rem;
-            color: #ccc;
-        }
-
-        .video-entry:last-child { border-bottom: none; }
-        .video-entry .size { color: #666; }
-
-        #noVideos { color: #555; font-size: 0.82rem; }
-
-        /* Endpoints */
-        .endpoint {
-            font-size: 0.8rem;
-            color: #aaa;
-            margin-bottom: 6px;
-        }
-
-        .endpoint span { color: #64b5f6; }
-
-        /* Pool result */
-        #poolResult { font-size: 0.82rem; color: #aaa; margin-top: 6px; }
-
-        .footer {
-            margin-top: 20px;
-            font-size: 0.72rem;
-            color: #444;
-            max-width: 960px;
-        }
-
-        /* Session button */
-        .session-bar {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            max-width: 960px;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--warn-bg);
+            border: 1px solid #f0d070;
+            border-radius: 7px;
+            padding: 12px 14px;
+            font-size: 0.78rem;
+            color: var(--warn);
             margin-bottom: 16px;
         }
 
-        #btnSession {
-            padding: 10px 32px;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            border-radius: 4px;
+        /* ── FORM ELEMENTS ──────────────────────────────────────────── */
+        .section-label {
+            font-size: 0.67rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--blue);
+            font-weight: 700;
+            margin: 22px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--blue-light);
         }
 
-        #btnSession.start { border-color: #4caf50; color: #4caf50; }
-        #btnSession.stop  { border-color: #f44336; color: #f44336; }
+        .section-label:first-child { margin-top: 0; }
 
-        #sessionLabel { font-size: 0.82rem; color: #666; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-bottom: 4px; }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 0.72rem; color: var(--text-2); font-weight: 500; }
+
+        .form-group input,
+        .form-group select {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text);
+            padding: 8px 11px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(0,114,181,.12);
+        }
+
+        .form-hint { font-size: 0.66rem; color: var(--text-3); }
+
+        /* ── BUTTONS ───────────────────────────────────────────────── */
+        .btn { padding: 8px 20px; border-radius: 5px; font-size: 0.79rem; font-weight: 600; cursor: pointer; font-family: inherit; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--navy); color: #fff; }
+        .btn-primary:hover { background: var(--navy-dark); }
+        .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .card-actions-right { display: flex; gap: 10px; }
+        .action-note { font-size: 0.69rem; color: var(--text-3); }
+
+        /* ── VIDEO LIST ──────────────────────────────────────────────── */
+        .video-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .video-item:last-child { border-bottom: none; }
+        .video-icon { width: 30px; height: 30px; border-radius: 5px; background: var(--blue-light); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--blue); flex-shrink: 0; }
+        .video-name { flex: 1; color: var(--text); }
+        .video-date { color: var(--text-2); font-size: 0.75rem; }
+        .video-size { color: var(--text-3); font-size: 0.72rem; min-width: 56px; text-align: right; }
+
+        /* ── ENDPOINT TABLE ─────────────────────────────────────────── */
+        .ep-header, .ep-row { display: grid; grid-template-columns: 100px 220px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
+        .ep-header { font-size: 0.63rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .ep-row:last-child { border-bottom: none; }
+        .ep-row { font-size: 0.78rem; }
+        .ep-method { color: var(--navy); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.5px; }
+        .ep-url    { color: var(--blue); font-family: monospace; font-size: 0.77rem; }
+        .ep-desc   { color: var(--text-2); }
+
+        /* ── RANGE INPUTS (gauge min/max) ──────────────────────────── */
+        .gauge-table { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+
+        .gauge-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: var(--blue-light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .gauge-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .range-inputs input {
+            width: 90px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text);
+            padding: 7px 10px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .range-inputs input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(0,114,181,.12);
+        }
+
+        .range-dash { color: var(--text-3); font-size: 1rem; user-select: none; }
+        .range-unit { font-size: 0.75rem; color: var(--text-2); min-width: 36px; font-weight: 500; }
+
+        /* ── API ENDPOINT SECTION HEADERS ───────────────────────────── */
+        .ep-section {
+            font-size: 0.63rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--blue);
+            font-weight: 700;
+            padding: 14px 0 6px;
+            border-bottom: 2px solid var(--blue-light);
+            margin-bottom: 2px;
+        }
+
+        .ep-section:first-child { padding-top: 4px; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     </style>
 </head>
 <body>
 
-<h1>AR WELDING SERVER — DASHBOARD</h1>
+<!-- ── SIDEBAR ──────────────────────────────────────────────────────── -->
+<aside class="sidebar">
 
-<!-- Single START / STOP button that controls all three toggles at once -->
-<div class="session-bar">
-    <button id="btnSession" class="start" onclick="toggleSession()">START SESSION</button>
-    <span id="sessionLabel">All streams are OFF — connect glasses, adjust settings, then press Start.</span>
-</div>
-
-<div class="grid">
-
-    <!-- STATUS -->
-    <div class="card">
-        <h2>Status</h2>
-        <div class="status-row"><div class="dot grey" id="dot-python"></div> Python AI reachable</div>
-        <div class="status-row"><div class="dot grey" id="dot-ws"></div> Glasses WebSocket connected</div>
-        <div class="status-row"><div class="dot grey" id="dot-clients"></div> <span id="label-clients">0 glasses on SSE stream</span></div>
-        <div class="status-row"><div class="dot grey" id="dot-frames"></div> <span id="label-frames">0 frames this session</span></div>
-        <div id="poolResult">Last pool detection: —</div>
+    <div class="sidebar-logo">
+        <img src="KU-Leuven-logo.png" alt="KU Leuven" class="ku-logo-img">
+        <div class="sidebar-subtitle">AR Welding Guidance — Thesis Remy Lenaerts</div>
     </div>
 
-    <!-- CONTROLS -->
-    <div class="card">
-        <h2>Controls</h2>
-        <div class="toggle-row">
-            <span>Polling (DataGetter → Python AI)</span>
-            <button id="btn-polling" onclick="toggle('polling')">—</button>
+    <nav>
+        <div class="nav-section">Monitor</div>
+        <div class="nav-item active" onclick="showPage('overview', this)">
+            <span class="nav-icon">◈</span> Overview
         </div>
-        <div class="toggle-row">
-            <span>Streaming (SSE → Glasses)</span>
-            <button id="btn-streaming" onclick="toggle('streaming')">—</button>
+
+        <div class="nav-section">Features</div>
+        <div class="nav-item" onclick="showPage('camera', this)">
+            <span class="nav-icon">⏺</span> Camera &amp; Detection
         </div>
-        <div class="toggle-row">
-            <span>Tracking (Pool detection)</span>
-            <button id="btn-tracking" onclick="toggle('tracking')">—</button>
+        <div class="nav-item" onclick="showPage('server-settings', this)">
+            <span class="nav-icon">⚙</span> Camera Settings
         </div>
+
+        <div class="nav-section">Configuration</div>
+        <div class="nav-item" onclick="showPage('app-settings', this)">
+            <span class="nav-icon">📱</span> App Settings
+        </div>
+
+        <div class="nav-section">Info</div>
+        <div class="nav-item" onclick="showPage('endpoints', this)">
+            <span class="nav-icon">⟡</span> API Endpoints
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button id="btnSession" class="start" onclick="toggleSession()">
+            ▶ &nbsp;Start Session
+        </button>
+        <div id="sessionLabel">Enable polling &amp; streaming to start.</div>
     </div>
+</aside>
 
-    <!-- DETECTOR SETTINGS -->
-    <div class="card">
-        <h2>Detector Settings</h2>
-        <div class="setting-row">
-            <label>Brightness threshold (0-255)</label>
-            <input type="number" id="s-brightnessThreshold" min="0" max="255">
-        </div>
-        <div class="setting-row">
-            <label>Blur kernel (odd: 3,5,7...)</label>
-            <input type="number" id="s-blurKernel" min="3" max="21" step="2">
-        </div>
-        <div class="setting-row">
-            <label>Morph kernel size</label>
-            <input type="number" id="s-morphKernel" min="1" max="21">
-        </div>
-        <div class="setting-row">
-            <label>Min blob area (px²)</label>
-            <input type="number" id="s-minBlobArea" min="1">
-        </div>
-        <div class="setting-row">
-            <label>Min circularity (0.0-1.0)</label>
-            <input type="number" id="s-minCircularity" min="0" max="1" step="0.05">
-        </div>
-        <div class="setting-row">
-            <label>Video framerate (fps)</label>
-            <input type="number" id="s-videoFramerate" min="1" max="120">
-        </div>
-        <button id="saveSettings" onclick="saveSettings()">Save Settings</button>
-    </div>
+<!-- ── MAIN ─────────────────────────────────────────────────────────── -->
+<div class="main">
 
-    <!-- RECORDINGS -->
-    <div class="card">
-        <h2>Recordings</h2>
-        <div id="videoList"><span id="noVideos">No recordings yet.</span></div>
-    </div>
+    <header>
+        <div>
+            <div class="header-title" id="headerTitle">Overview</div>
+            <div class="header-sub"   id="headerSub">AI data stream and glasses connection</div>
+        </div>
+        <div class="header-chips">
+            <div class="chip"><div class="dot grey" id="hChip-ai"></div> Python AI</div>
+            <div class="chip"><div class="dot grey" id="hChip-sse"></div> SSE Stream</div>
+            <div class="chip"><div class="dot grey" id="hChip-ws"></div> Glasses WS</div>
+        </div>
+    </header>
 
-    <!-- ENDPOINTS -->
-    <div class="card full">
-        <h2>Endpoints</h2>
-        <div class="endpoint">SSE stream &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span>http://sse-server.local:9999/stream</span> &nbsp;— glasses connect here to receive data</div>
-        <div class="endpoint">WebSocket &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span>ws://sse-server.local:9999/frames</span> &nbsp;— glasses send camera frames here</div>
-        <div class="endpoint">Pool detection &nbsp; <span>http://127.0.0.1:9999/pool</span> &nbsp;— pool_detector.py posts results here</div>
-        <div class="endpoint">Settings API &nbsp;&nbsp;&nbsp; <span>http://127.0.0.1:9999/api/settings</span> &nbsp;— read by pool_detector.py on startup</div>
-        <div class="endpoint">Frame count &nbsp;&nbsp;&nbsp; <span>http://127.0.0.1:9999/frames/count</span></div>
-    </div>
+    <div class="page-content">
 
-</div>
+        <!-- ══ OVERVIEW ════════════════════════════════════════════ -->
+        <div class="page active" id="page-overview">
 
-<div class="footer">Auto-refreshes every 2 seconds &nbsp;|&nbsp; AR Welding Guidance System — Thesis Remy Lenaerts</div>
+            <div class="stat-row">
+                <div class="stat-card" id="sc-ai">
+                    <div class="stat-label">Python AI (port 8060)</div>
+                    <div class="stat-val" id="sv-ai">—</div>
+                    <div class="stat-hint">Defect inference source</div>
+                </div>
+                <div class="stat-card" id="sc-polling">
+                    <div class="stat-label">Polling</div>
+                    <div class="stat-val" id="sv-polling">—</div>
+                    <div class="stat-hint">Fetching from Python AI</div>
+                </div>
+                <div class="stat-card" id="sc-streaming">
+                    <div class="stat-label">Streaming</div>
+                    <div class="stat-val" id="sv-streaming">—</div>
+                    <div class="stat-hint">Broadcasting to glasses</div>
+                </div>
+                <div class="stat-card warn">
+                    <div class="stat-label">SSE Clients</div>
+                    <div class="stat-val warn" id="sv-clients">0</div>
+                    <div class="stat-hint">Glasses on stream</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+
+                <div class="card">
+                    <div class="card-title">Session Controls</div>
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-name">Polling</div>
+                            <div class="toggle-desc">DataGetter → Python AI (port 8060)</div>
+                        </div>
+                        <div class="sw" id="sw-polling" onclick="toggle('polling')"></div>
+                    </div>
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-name">Streaming</div>
+                            <div class="toggle-desc">SSE broadcast → Glasses</div>
+                        </div>
+                        <div class="sw" id="sw-streaming" onclick="toggle('streaming')"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Live Data — Last Packet</div>
+                    <div class="live-grid" id="liveGrid">
+                        <div class="live-item">
+                            <div class="live-label">Current</div>
+                            <div class="live-val" id="ld-current">—<span class="live-unit">A</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Voltage</div>
+                            <div class="live-val" id="ld-voltage">—<span class="live-unit">V</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Gas Flow</div>
+                            <div class="live-val" id="ld-gas">—<span class="live-unit">l/min</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Last Update</div>
+                            <div class="live-val" style="font-size:0.82rem" id="ld-time">—</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ══ CAMERA & DETECTION ══════════════════════════════════ -->
+        <div class="page" id="page-camera">
+
+            <div class="notice">
+                ⚠ Camera capture is a proof-of-concept feature. Keep it disabled to minimise network delay during welding.
+            </div>
+
+            <div class="card">
+                <div class="card-title">Camera Controls</div>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-name">Camera Capture</div>
+                        <div class="toggle-desc">Saves frames from glasses · tells glasses to start/stop camera · off by default</div>
+                    </div>
+                    <div class="sw" id="sw-camera" onclick="toggle('camera')"></div>
+                </div>
+                <div class="toggle-row">
+                    <div>
+                        <div class="toggle-name">Pool Tracking</div>
+                        <div class="toggle-desc">Forwards detection results to glasses as SSE event</div>
+                    </div>
+                    <div class="sw" id="sw-tracking" onclick="toggle('tracking')"></div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+
+                <div class="card">
+                    <div class="card-title">Weld Pool Detection</div>
+                    <div id="poolStatus" style="font-size:0.78rem;color:var(--text-2);">Waiting for detection result…</div>
+                    <div class="detection-box">
+                        <div class="det-circle" id="detCircle">
+                            <div class="det-inner"></div>
+                        </div>
+                        <div class="det-coords">
+                            <div><span>X &nbsp;&nbsp;&nbsp;</span><strong id="det-x">—</strong></div>
+                            <div><span>Y &nbsp;&nbsp;&nbsp;</span><strong id="det-y">—</strong></div>
+                            <div><span>Radius </span><strong id="det-r">—</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Session Stats</div>
+                    <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px;">
+                        <div>
+                            <div class="stat-label">Frames This Session</div>
+                            <div class="stat-val info" id="sv-frames">0</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Glasses WebSocket</div>
+                            <div class="stat-val" id="sv-ws">—</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card">
+                <div class="card-title">Recorded Sessions</div>
+                <div id="videoList">
+                    <span style="font-size:0.8rem;color:var(--text-3);">No recordings yet.</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══ CAMERA SETTINGS ══════════════════════════════════════ -->
+        <div class="page" id="page-server-settings">
+            <div class="card">
+                <div class="section-label">Detection Parameters</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Brightness Threshold (0–255)</label>
+                        <input type="number" id="s-brightnessThreshold" min="0" max="255">
+                        <span class="form-hint">Pixels above this value are treated as the weld pool.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Blur Kernel (odd: 3, 5, 7…)</label>
+                        <input type="number" id="s-blurKernel" min="3" max="21" step="2">
+                        <span class="form-hint">Gaussian blur applied before thresholding.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Morph Kernel Size</label>
+                        <input type="number" id="s-morphKernel" min="1" max="21">
+                        <span class="form-hint">Controls erosion/dilation strength.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Min Blob Area (px²)</label>
+                        <input type="number" id="s-minBlobArea" min="1">
+                        <span class="form-hint">Blobs smaller than this are ignored as noise.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Min Circularity (0.0–1.0)</label>
+                        <input type="number" id="s-minCircularity" min="0" max="1" step="0.05">
+                        <span class="form-hint">1.0 = perfect circle. Filters non-circular blobs.</span>
+                    </div>
+                </div>
+
+                <div class="section-label">Recording</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Frame Capture Rate (fps)</label>
+                        <input type="number" id="s-videoFramerate" min="1" max="60">
+                        <span class="form-hint">Target frames per second saved to disk and used by ffmpeg when stitching the MP4.</span>
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <span class="action-note">pool_detector.py picks up changes within 10 seconds.</span>
+                    <div class="card-actions-right">
+                        <button class="btn btn-primary" id="saveServerBtn" onclick="saveServerSettings()">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ APP SETTINGS ═════════════════════════════════════════ -->
+        <div class="page" id="page-app-settings">
+            <div class="card">
+                <div class="section-label">Gauge Ranges</div>
+                <div class="gauge-table">
+                    <div class="gauge-row">
+                        <span class="gauge-label">Voltage</span>
+                        <div class="range-inputs">
+                            <input type="number" id="a-voltageMin" step="0.1" placeholder="Min">
+                            <span class="range-dash">—</span>
+                            <input type="number" id="a-voltageMax" step="0.1" placeholder="Max">
+                            <span class="range-unit">V</span>
+                        </div>
+                    </div>
+                    <div class="gauge-row">
+                        <span class="gauge-label">Amperage</span>
+                        <div class="range-inputs">
+                            <input type="number" id="a-amperageMin" placeholder="Min">
+                            <span class="range-dash">—</span>
+                            <input type="number" id="a-amperageMax" placeholder="Max">
+                            <span class="range-unit">A</span>
+                        </div>
+                    </div>
+                    <div class="gauge-row">
+                        <span class="gauge-label">Gas Flow</span>
+                        <div class="range-inputs">
+                            <input type="number" id="a-gasFlowMin" step="0.1" placeholder="Min">
+                            <span class="range-dash">—</span>
+                            <input type="number" id="a-gasFlowMax" step="0.1" placeholder="Max">
+                            <span class="range-unit">l/min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-label">Display</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Heatbar Duration (seconds)</label>
+                        <input type="number" id="a-heatbarDuration" min="5" max="300">
+                        <span class="form-hint">How many seconds of porosity history to show.</span>
+                    </div>
+                </div>
+
+                <div class="section-label">Pool Detection Overlay <span style="font-size:0.65rem;font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0;">(Camera feature)</span></div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Show Overlay</label>
+                        <select id="a-showPoolDetection">
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                        </select>
+                        <span class="form-hint">Draw detection circle on the glasses display.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Overlay Opacity (0.0–1.0)</label>
+                        <input type="number" id="a-overlayOpacity" min="0" max="1" step="0.1">
+                        <span class="form-hint">Transparency of the AR overlay.</span>
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <span class="action-note">Android fetches these on app launch via GET /api/app-settings.</span>
+                    <div class="card-actions-right">
+                        <button class="btn btn-ghost" onclick="loadAppSettings()">Reload</button>
+                        <button class="btn btn-primary" id="saveAppBtn" onclick="saveAppSettings()">Push to App</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ENDPOINTS ════════════════════════════════════════════ -->
+        <div class="page" id="page-endpoints">
+            <div class="card">
+                <div class="card-title">API Reference</div>
+                <div class="ep-header">
+                    <div>Method</div><div>Endpoint</div><div>Description</div>
+                </div>
+
+                <div class="ep-section">Core — AI Data &amp; Glasses</div>
+                <div class="ep-row">
+                    <div class="ep-method">GET</div>
+                    <div class="ep-url">:9999/stream</div>
+                    <div class="ep-desc">SSE stream — glasses subscribe here; receives <em>welddata</em>, <em>pooldetection</em>, <em>cameraControl</em> events</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">GET</div>
+                    <div class="ep-url">:9999/api/status</div>
+                    <div class="ep-desc">Full server status as JSON — polled every 2 s by dashboard</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">POST</div>
+                    <div class="ep-url">:9999/api/toggle/polling</div>
+                    <div class="ep-desc">Enable / disable DataGetter fetching from Python AI</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">POST</div>
+                    <div class="ep-url">:9999/api/toggle/streaming</div>
+                    <div class="ep-desc">Enable / disable SSE broadcast to glasses</div>
+                </div>
+
+                <div class="ep-section">Configuration</div>
+                <div class="ep-row">
+                    <div class="ep-method">GET / POST</div>
+                    <div class="ep-url">:9999/api/app-settings</div>
+                    <div class="ep-desc">Gauge ranges, heatbar duration, overlay options — fetched by Android on launch</div>
+                </div>
+
+                <div class="ep-section">Camera &amp; Detection (proof-of-concept)</div>
+                <div class="ep-row">
+                    <div class="ep-method">WS</div>
+                    <div class="ep-url">:9999/frames</div>
+                    <div class="ep-desc">WebSocket — glasses stream JPEG frames here when camera is enabled</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">POST</div>
+                    <div class="ep-url">:9999/pool</div>
+                    <div class="ep-desc">pool_detector.py posts detection result; server rebroadcasts as <em>pooldetection</em> SSE event</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">POST</div>
+                    <div class="ep-url">:9999/api/toggle/camera</div>
+                    <div class="ep-desc">Enable / disable camera capture — also tells glasses to start/stop via SSE</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">POST</div>
+                    <div class="ep-url">:9999/api/toggle/tracking</div>
+                    <div class="ep-desc">Enable / disable forwarding pool detection results to glasses</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">GET / POST</div>
+                    <div class="ep-url">:9999/api/settings</div>
+                    <div class="ep-desc">Detection parameters (threshold, blur, morph…) — also polled by pool_detector.py</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">GET</div>
+                    <div class="ep-url">:9999/api/videos</div>
+                    <div class="ep-desc">List of recorded MP4 files with metadata</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">GET</div>
+                    <div class="ep-url">:9999/api/video/{filename}</div>
+                    <div class="ep-desc">Stream / play a recorded MP4 inline in the browser</div>
+                </div>
+                <div class="ep-row">
+                    <div class="ep-method">GET</div>
+                    <div class="ep-url">:9999/frames/count</div>
+                    <div class="ep-desc">Number of frames saved in the current session</div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /page-content -->
+</div><!-- /main -->
 
 <script>
-    // ── Status polling ────────────────────────────────────────────────────────
+    // ── Navigation ──────────────────────────────────────────────────────────
+    const pages = {
+        'overview':        { title: 'Overview',              sub: 'AI data stream and glasses connection' },
+        'camera':          { title: 'Camera & Detection',    sub: 'Proof-of-concept — disable to reduce latency' },
+        'server-settings': { title: 'Camera Settings',        sub: 'Detection parameters and frame capture rate' },
+        'app-settings':    { title: 'App Settings',          sub: 'Configuration pushed to Android glasses' },
+        'endpoints':       { title: 'API Endpoints',         sub: 'Reference for all server endpoints' }
+    };
 
-    function dot(id, on) {
+    function showPage(name, navEl) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + name).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if (navEl) navEl.classList.add('active');
+        document.getElementById('headerTitle').textContent = pages[name].title;
+        document.getElementById('headerSub').textContent   = pages[name].sub;
+        if (name === 'camera')          loadVideos();
+        if (name === 'server-settings') loadServerSettings();
+        if (name === 'app-settings')    loadAppSettings();
+    }
+
+    // ── Session (polling + streaming only — camera is separate) ────────────
+    let sessionActive = false;
+
+    function toggleSession() {
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(s => {
+                const want  = !sessionActive;
+                const calls = [];
+                if (s.pollingEnabled   !== want) calls.push(fetch('/api/toggle/polling',   { method: 'POST' }));
+                if (s.streamingEnabled !== want) calls.push(fetch('/api/toggle/streaming', { method: 'POST' }));
+                return Promise.all(calls);
+            })
+            .then(() => { sessionActive = !sessionActive; renderSessionBtn(); refreshStatus(); })
+            .catch(() => {});
+    }
+
+    function renderSessionBtn() {
+        const btn   = document.getElementById('btnSession');
+        const label = document.getElementById('sessionLabel');
+        if (sessionActive) {
+            btn.innerHTML   = '<div class="pulse-dot"></div>&nbsp; Stop Session';
+            btn.className   = 'stop';
+            label.textContent = 'Session active — AI data streaming.';
+        } else {
+            btn.innerHTML   = '&#9654;&nbsp; Start Session';
+            btn.className   = 'start';
+            label.textContent = 'Enable polling & streaming to start.';
+        }
+    }
+
+    // ── Individual toggles ────────────────────────────────────────────────
+    function toggle(name) {
+        fetch('/api/toggle/' + name, { method: 'POST' }).then(() => refreshStatus()).catch(() => {});
+    }
+
+    function setSw(id, on) {
         const el = document.getElementById(id);
-        el.className = 'dot ' + (on ? 'green' : 'red');
+        if (!el) return;
+        if (on) el.classList.add('on'); else el.classList.remove('on');
+    }
+
+    // ── Status refresh ────────────────────────────────────────────────────
+    function setDot(id, cls) {
+        const el = document.getElementById(id);
+        if (el) el.className = 'dot ' + cls;
     }
 
     function refreshStatus() {
         fetch('/api/status')
             .then(r => r.json())
             .then(s => {
-                dot('dot-python',  s.pythonAiReachable);
-                dot('dot-ws',      s.websocketActive);
-                dot('dot-clients', s.connectedClients > 0);
-                dot('dot-frames',  s.framesThisSession > 0);
+                // Header chips
+                setDot('hChip-ai',  s.pythonAiReachable  ? 'green' : 'red');
+                setDot('hChip-sse', s.connectedClients > 0 ? 'green' : 'grey');
+                setDot('hChip-ws',  s.websocketActive    ? 'green' : 'grey');
 
-                document.getElementById('label-clients').textContent =
-                    s.connectedClients + ' glasses on SSE stream';
-                document.getElementById('label-frames').textContent =
-                    s.framesThisSession + ' frames this session';
-                document.getElementById('poolResult').textContent =
-                    'Last pool detection: ' + s.lastPoolResult;
+                // Overview stat cards
+                updateStatCard('sc-ai',        'sv-ai',        s.pythonAiReachable  ? 'ok'   : 'err',  s.pythonAiReachable  ? 'Reachable' : 'Offline');
+                updateStatCard('sc-polling',   'sv-polling',   s.pollingEnabled     ? 'ok'   : 'warn', s.pollingEnabled     ? 'Active'    : 'Paused');
+                updateStatCard('sc-streaming', 'sv-streaming', s.streamingEnabled   ? 'ok'   : 'warn', s.streamingEnabled   ? 'Active'    : 'Paused');
 
-                setBtn('btn-polling',   s.pollingEnabled);
-                setBtn('btn-streaming', s.streamingEnabled);
-                setBtn('btn-tracking',  s.trackingEnabled);
+                document.getElementById('sv-clients').textContent = s.connectedClients;
 
-                // Keep the session button in sync with the actual state
-                const allOn = s.pollingEnabled && s.streamingEnabled && s.trackingEnabled;
-                if (allOn !== sessionActive) {
-                    sessionActive = allOn;
-                    updateSessionButton();
+                // Toggles
+                setSw('sw-polling',   s.pollingEnabled);
+                setSw('sw-streaming', s.streamingEnabled);
+                setSw('sw-tracking',  s.trackingEnabled);
+                setSw('sw-camera',    s.cameraEnabled);
+
+                // Camera page stats
+                const framesEl = document.getElementById('sv-frames');
+                const wsEl     = document.getElementById('sv-ws');
+                if (framesEl) framesEl.textContent = s.framesThisSession;
+                if (wsEl) {
+                    wsEl.className  = 'stat-val ' + (s.websocketActive ? 'ok' : 'err');
+                    wsEl.textContent = s.websocketActive ? 'Connected' : 'Offline';
                 }
+
+                // Session button sync
+                const allOn = s.pollingEnabled && s.streamingEnabled;
+                if (allOn !== sessionActive) { sessionActive = allOn; renderSessionBtn(); }
+
+                // Live data
+                parseLiveData(s.lastDataPacket);
+
+                // Pool detection
+                parsePoolResult(s.lastPoolResult);
             })
             .catch(() => {});
     }
 
-    function setBtn(id, enabled) {
-        const btn = document.getElementById(id);
-        btn.textContent = enabled ? 'ON' : 'OFF';
-        btn.className   = enabled ? 'on' : 'off';
+    function updateStatCard(cardId, valId, state, text) {
+        const card = document.getElementById(cardId);
+        const val  = document.getElementById(valId);
+        if (!card || !val) return;
+        card.className = 'stat-card ' + state;
+        val.className  = 'stat-val '  + state;
+        val.textContent = text;
     }
 
-    // ── Session button — starts or stops all three streams at once ────────────
+    // ── Live data parsing ──────────────────────────────────────────────────
+    function parseLiveData(raw) {
+        if (!raw) return;
+        try {
+            const d      = JSON.parse(raw);
+            const analog = d.analog_rms_per_channel;
+            const ts     = d.timestamp_pc;
 
-    // Tracks the intended session state so we know whether to start or stop
-    let sessionActive = false;
+            if (analog && analog.length >= 6) {
+                document.getElementById('ld-current').innerHTML = analog[3].toFixed(1) + '<span class="live-unit">A</span>';
+                document.getElementById('ld-voltage').innerHTML = analog[4].toFixed(1) + '<span class="live-unit">V</span>';
+                document.getElementById('ld-gas').innerHTML     = analog[5].toFixed(1) + '<span class="live-unit">l/min</span>';
+            }
 
-    function toggleSession() {
-        // If session is not active, enable all three. If active, disable all three.
-        const targets = sessionActive
-            ? ['polling', 'streaming', 'tracking']   // stop — turn all off
-            : ['polling', 'streaming', 'tracking'];  // start — turn all on
-
-        // We need to toggle only the ones that are not already in the desired state.
-        // Simplest approach: fetch status first, then toggle only what needs changing.
-        fetch('/api/status')
-            .then(r => r.json())
-            .then(s => {
-                const want = !sessionActive; // desired state for all three
-                const promises = [];
-                if (s.pollingEnabled   !== want) promises.push(fetch('/api/toggle/polling',   { method: 'POST' }));
-                if (s.streamingEnabled !== want) promises.push(fetch('/api/toggle/streaming', { method: 'POST' }));
-                if (s.trackingEnabled  !== want) promises.push(fetch('/api/toggle/tracking',  { method: 'POST' }));
-                return Promise.all(promises);
-            })
-            .then(() => {
-                sessionActive = !sessionActive;
-                updateSessionButton();
-                refreshStatus();
-            })
-            .catch(() => {});
+            if (ts) {
+                document.getElementById('ld-time').textContent = ts.includes('T') ? ts.split('T')[1].substring(0, 8) : ts;
+            }
+        } catch { /* malformed packet — ignore */ }
     }
 
-    function updateSessionButton() {
-        const btn   = document.getElementById('btnSession');
-        const label = document.getElementById('sessionLabel');
-        if (sessionActive) {
-            btn.textContent = 'STOP SESSION';
-            btn.className   = 'stop';
-            label.textContent = 'Session is ACTIVE — all streams running.';
-        } else {
-            btn.textContent = 'START SESSION';
-            btn.className   = 'start';
-            label.textContent = 'All streams are OFF — connect glasses, adjust settings, then press Start.';
+    // ── Pool detection ─────────────────────────────────────────────────────
+    function parsePoolResult(raw) {
+        const status = document.getElementById('poolStatus');
+        const circle = document.getElementById('detCircle');
+        if (!status || !circle) return;
+        if (!raw || raw === '—') {
+            status.textContent = 'No detection result yet.';
+            circle.classList.remove('active');
+            ['det-x','det-y','det-r'].forEach(id => document.getElementById(id).textContent = '—');
+            return;
         }
+        try {
+            const p = JSON.parse(raw);
+            if (p.poolDetected) {
+                status.textContent = 'Pool detected.';
+                circle.classList.add('active');
+                document.getElementById('det-x').textContent = p.poolX;
+                document.getElementById('det-y').textContent = p.poolY;
+                document.getElementById('det-r').textContent = p.poolRadius;
+            } else {
+                status.textContent = 'No pool in last frame.';
+                circle.classList.remove('active');
+                ['det-x','det-y','det-r'].forEach(id => document.getElementById(id).textContent = '—');
+            }
+        } catch { status.textContent = raw; }
     }
 
-    // ── Individual toggles ────────────────────────────────────────────────────
-
-    function toggle(name) {
-        fetch('/api/toggle/' + name, { method: 'POST' })
-            .then(() => refreshStatus())
-            .catch(() => {});
-    }
-
-    // ── Settings ──────────────────────────────────────────────────────────────
-
-    function loadSettings() {
-        fetch('/api/settings')
-            .then(r => r.json())
-            .then(s => {
-                document.getElementById('s-brightnessThreshold').value = s.brightnessThreshold;
-                document.getElementById('s-blurKernel').value          = s.blurKernel;
-                document.getElementById('s-morphKernel').value         = s.morphKernel;
-                document.getElementById('s-minBlobArea').value         = s.minBlobArea;
-                document.getElementById('s-minCircularity').value      = s.minCircularity;
-                document.getElementById('s-videoFramerate').value      = s.videoFramerate;
-            })
-            .catch(() => {});
-    }
-
-    function saveSettings() {
-        const body = {
-            brightnessThreshold: parseInt(document.getElementById('s-brightnessThreshold').value),
-            blurKernel:          parseInt(document.getElementById('s-blurKernel').value),
-            morphKernel:         parseInt(document.getElementById('s-morphKernel').value),
-            minBlobArea:         parseInt(document.getElementById('s-minBlobArea').value),
-            minCircularity:      parseFloat(document.getElementById('s-minCircularity').value),
-            videoFramerate:      parseInt(document.getElementById('s-videoFramerate').value)
-        };
-        fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        }).then(() => {
-            document.getElementById('saveSettings').textContent = 'Saved ✓';
-            setTimeout(() => document.getElementById('saveSettings').textContent = 'Save Settings', 1500);
+    // ── Server settings ───────────────────────────────────────────────────
+    function loadServerSettings() {
+        fetch('/api/settings').then(r => r.json()).then(s => {
+            document.getElementById('s-brightnessThreshold').value = s.brightnessThreshold;
+            document.getElementById('s-blurKernel').value          = s.blurKernel;
+            document.getElementById('s-morphKernel').value         = s.morphKernel;
+            document.getElementById('s-minBlobArea').value         = s.minBlobArea;
+            document.getElementById('s-minCircularity').value      = s.minCircularity;
+            document.getElementById('s-videoFramerate').value      = s.videoFramerate;
         }).catch(() => {});
     }
 
-    // ── Video list ────────────────────────────────────────────────────────────
-
-    function loadVideos() {
-        fetch('/api/videos')
-            .then(r => r.json())
-            .then(videos => {
-                const el = document.getElementById('videoList');
-                if (videos.length === 0) {
-                    el.innerHTML = '<span id="noVideos">No recordings yet.</span>';
-                    return;
-                }
-                el.innerHTML = videos.map(v =>
-                    `<div class="video-entry">
-                        <span>${v.timestamp}</span>
-                        <span>${v.name}</span>
-                        <span class="size">${v.size}</span>
-                    </div>`
-                ).join('');
+    function saveServerSettings() {
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                brightnessThreshold: parseInt(document.getElementById('s-brightnessThreshold').value),
+                blurKernel:          parseInt(document.getElementById('s-blurKernel').value),
+                morphKernel:         parseInt(document.getElementById('s-morphKernel').value),
+                minBlobArea:         parseInt(document.getElementById('s-minBlobArea').value),
+                minCircularity:      parseFloat(document.getElementById('s-minCircularity').value),
+                videoFramerate:      parseInt(document.getElementById('s-videoFramerate').value)
             })
-            .catch(() => {});
+        }).then(() => flash('saveServerBtn', 'Saved ✓')).catch(() => {});
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── App settings ──────────────────────────────────────────────────────
+    function loadAppSettings() {
+        fetch('/api/app-settings').then(r => r.json()).then(s => {
+            document.getElementById('a-voltageMin').value        = s.voltageMin;
+            document.getElementById('a-voltageMax').value        = s.voltageMax;
+            document.getElementById('a-amperageMin').value       = s.amperageMin;
+            document.getElementById('a-amperageMax').value       = s.amperageMax;
+            document.getElementById('a-gasFlowMin').value        = s.gasFlowMin;
+            document.getElementById('a-gasFlowMax').value        = s.gasFlowMax;
+            document.getElementById('a-showPoolDetection').value = String(s.showPoolDetection);
+            document.getElementById('a-overlayOpacity').value    = s.overlayOpacity;
+            document.getElementById('a-heatbarDuration').value   = s.heatbarDuration;
+        }).catch(() => {});
+    }
 
-    loadSettings();
-    loadVideos();
+    function saveAppSettings() {
+        fetch('/api/app-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                voltageMin:        parseFloat(document.getElementById('a-voltageMin').value),
+                voltageMax:        parseFloat(document.getElementById('a-voltageMax').value),
+                amperageMin:       parseFloat(document.getElementById('a-amperageMin').value),
+                amperageMax:       parseFloat(document.getElementById('a-amperageMax').value),
+                gasFlowMin:        parseFloat(document.getElementById('a-gasFlowMin').value),
+                gasFlowMax:        parseFloat(document.getElementById('a-gasFlowMax').value),
+                showPoolDetection: document.getElementById('a-showPoolDetection').value === 'true',
+                overlayOpacity:    parseFloat(document.getElementById('a-overlayOpacity').value),
+                heatbarDuration:   parseInt(document.getElementById('a-heatbarDuration').value)
+            })
+        }).then(() => flash('saveAppBtn', 'Pushed ✓')).catch(() => {});
+    }
+
+    // ── Video list ─────────────────────────────────────────────────────────
+    function loadVideos() {
+        fetch('/api/videos').then(r => r.json()).then(videos => {
+            const el = document.getElementById('videoList');
+            if (!videos.length) {
+                el.innerHTML = '<span style="font-size:0.8rem;color:var(--text-3);">No recordings yet.</span>';
+                return;
+            }
+            el.innerHTML = videos.map(v => `
+                <a class="video-item" href="/api/video/${encodeURIComponent(v.name)}" target="_blank" style="text-decoration:none;">
+                    <div class="video-icon">▶</div>
+                    <span class="video-name">${v.name}</span>
+                    <span class="video-date">${v.timestamp}</span>
+                    <span class="video-size">${v.size}</span>
+                </a>`).join('');
+        }).catch(() => {});
+    }
+
+    // ── Helper ─────────────────────────────────────────────────────────────
+    function flash(id, label) {
+        const btn  = document.getElementById(id);
+        const orig = btn.textContent;
+        btn.textContent = label;
+        setTimeout(() => btn.textContent = orig, 1800);
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    loadServerSettings();
+    loadAppSettings();
     refreshStatus();
-
-    setInterval(refreshStatus, 2000);  // status refreshes every 2 seconds
-    setInterval(loadVideos,    5000);  // video list refreshes every 5 seconds
+    setInterval(refreshStatus, 2000);
 </script>
 </body>
 </html>

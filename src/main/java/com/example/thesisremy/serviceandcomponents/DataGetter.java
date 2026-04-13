@@ -45,6 +45,7 @@ public class DataGetter {
 
             if (json != null && !json.equals(lastJson)) {
                 lastJson = json;
+                serverState.setLastDataPacket(json); // expose to dashboard overview
 
                 // Streaming toggle — fetch and deduplicate, but don't send to glasses when disabled
                 if (serverState.isStreamingEnabled()) {

@@ -3,6 +3,10 @@ package com.example.thesisremy.controller;
 import com.example.thesisremy.serviceandcomponents.Broadcast;
 import com.example.thesisremy.serviceandcomponents.FrameWebSocketHandler;
 import com.example.thesisremy.serviceandcomponents.ServerState;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -10,9 +14,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.File;
 import java.text.DecimalFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,11 +70,13 @@ public class DashboardController {
         return ResponseEntity.ok(Map.of(
             "pollingEnabled",    serverState.isPollingEnabled(),
             "streamingEnabled",  serverState.isStreamingEnabled(),
-            "trackingEnabled",   serverState.isTrackingEnabled(),
+            "cameraEnabled",     serverState.isCameraEnabled(),
             "connectedClients",  broadcast.getConnectedCount(),
             "framesThisSession", frameHandler.getFrameCount(),
             "websocketActive",   frameHandler.isWebSocketActive(),
             "pythonAiReachable", checkPythonAi(),
+            "lastDataPacket",    serverState.getLastDataPacket(),
+            "trackingEnabled",   serverState.isTrackingEnabled(),
             "lastPoolResult",    serverState.getLastPoolResult()
         ));
     }
@@ -105,6 +109,15 @@ public class DashboardController {
     public ResponseEntity<Map<String, Boolean>> toggleTracking() {
         serverState.toggleTracking();
         return ResponseEntity.ok(Map.of("trackingEnabled", serverState.isTrackingEnabled()));
+    }
+
+    // Toggles camera capture and immediately tells the glasses to start/stop via SSE
+    @PostMapping("/api/toggle/camera")
+    public ResponseEntity<Map<String, Boolean>> toggleCamera() {
+        serverState.toggleCamera();
+        boolean enabled = serverState.isCameraEnabled();
+        broadcast.broadcastNamed("cameraControl", "{\"enabled\":" + enabled + "}");
+        return ResponseEntity.ok(Map.of("cameraEnabled", enabled));
     }
 
     /*
@@ -153,6 +166,25 @@ public class DashboardController {
     }
 
     /*
+        Serves a recorded MP4 file inline so the browser can play it directly.
+        Filename is validated to prevent path traversal.
+    */
+    @GetMapping("/api/video/{filename}")
+    public ResponseEntity<Resource> streamVideo(@PathVariable String filename) {
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\"))
+            return ResponseEntity.badRequest().build();
+
+        File file = new File(VIDEOS_DIR + filename);
+        if (!file.exists() || !file.isFile())
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("video/mp4"))
+                .body(new FileSystemResource(file));
+    }
+
+    /*
         Returns the current detector settings as JSON.
         This endpoint is also called by pool_detector.py on startup so that
         settings changed in the dashboard are picked up without restarting Python.
@@ -187,6 +219,43 @@ public class DashboardController {
             serverState.setMinCircularity(((Number) body.get("minCircularity")).doubleValue());
         if (body.containsKey("videoFramerate"))
             serverState.setVideoFramerate((Integer) body.get("videoFramerate"));
+        return ResponseEntity.ok().build();
+    }
+
+    /*
+        Returns the current Android app configuration as JSON.
+        The Android app calls this on launch so settings can be adjusted from the
+        dashboard without rebuilding the APK. Gauge ranges, alert thresholds, and
+        display options are all included.
+    */
+    @GetMapping("/api/app-settings")
+    public ResponseEntity<Map<String, Object>> getAppSettings() {
+        return ResponseEntity.ok(Map.of(
+            "voltageMin",        serverState.getVoltageMin(),
+            "voltageMax",        serverState.getVoltageMax(),
+            "amperageMin",       serverState.getAmperageMin(),
+            "amperageMax",       serverState.getAmperageMax(),
+            "gasFlowMin",        serverState.getGasFlowMin(),
+            "gasFlowMax",        serverState.getGasFlowMax(),
+            "showPoolDetection", serverState.isShowPoolDetection(),
+            "overlayOpacity",    serverState.getOverlayOpacity(),
+            "heatbarDuration",   serverState.getHeatbarDuration(),
+            "cameraEnabled",     serverState.isCameraEnabled()
+        ));
+    }
+
+    // Saves Android app settings posted from the dashboard form
+    @PostMapping("/api/app-settings")
+    public ResponseEntity<Void> updateAppSettings(@RequestBody Map<String, Object> body) {
+        if (body.containsKey("voltageMin"))        serverState.setVoltageMin(       ((Number) body.get("voltageMin")).doubleValue());
+        if (body.containsKey("voltageMax"))        serverState.setVoltageMax(       ((Number) body.get("voltageMax")).doubleValue());
+        if (body.containsKey("amperageMin"))       serverState.setAmperageMin(      ((Number) body.get("amperageMin")).doubleValue());
+        if (body.containsKey("amperageMax"))       serverState.setAmperageMax(      ((Number) body.get("amperageMax")).doubleValue());
+        if (body.containsKey("gasFlowMin"))        serverState.setGasFlowMin(       ((Number) body.get("gasFlowMin")).doubleValue());
+        if (body.containsKey("gasFlowMax"))        serverState.setGasFlowMax(       ((Number) body.get("gasFlowMax")).doubleValue());
+        if (body.containsKey("showPoolDetection")) serverState.setShowPoolDetection((Boolean) body.get("showPoolDetection"));
+        if (body.containsKey("overlayOpacity"))    serverState.setOverlayOpacity(   ((Number) body.get("overlayOpacity")).doubleValue());
+        if (body.containsKey("heatbarDuration"))   serverState.setHeatbarDuration(  ((Number) body.get("heatbarDuration")).intValue());
         return ResponseEntity.ok().build();
     }
 }

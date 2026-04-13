@@ -34,11 +34,36 @@ public class ServerState {
     // Changing them from the dashboard takes effect on the next detector poll cycle.
 
     private volatile int    brightnessThreshold = 200;  // 0-255, pixels brighter than this = blob
-    private volatile int    blurKernel          = 7;    // must be odd: 3, 5, 7, 9 ...
+    private volatile int    blurKernel          = 5;    // must be odd: 3, 5, 7, 9 ...
     private volatile int    morphKernel         = 5;    // erosion/dilation kernel size
-    private volatile int    minBlobArea         = 100;  // minimum blob area in pixels
-    private volatile double minCircularity      = 0.5;  // 0.0-1.0, 1.0 = perfect circle
+    private volatile int    minBlobArea         = 50;   // minimum blob area in pixels
+    private volatile double minCircularity      = 0.4;  // 0.0-1.0, 1.0 = perfect circle
     private volatile int    videoFramerate      = 30;   // fps used when stitching MP4
+
+    // ── Camera capture (proof-of-concept feature — off by default) ───────────
+    // When false: frames from the glasses are discarded, pool detector is idle,
+    // and the glasses are told to stop their camera via a "cameraControl" SSE event.
+    private volatile boolean cameraEnabled = false;
+
+    // ── Android app settings (fetched by the app on launch via GET /api/app-settings) ──
+
+    // Gauge display ranges — set these to the realistic operating ranges for the welder
+    private volatile double voltageMin    =  10.0;   // V
+    private volatile double voltageMax    =  40.0;   // V
+    private volatile double amperageMin   =   0.0;   // A
+    private volatile double amperageMax   = 400.0;   // A
+    private volatile double gasFlowMin    =   0.0;   // l/min
+    private volatile double gasFlowMax    =  20.0;   // l/min
+
+    // AR overlay options
+    private volatile boolean showPoolDetection = true;   // draw detection circle on glasses
+    private volatile double  overlayOpacity    = 0.8;   // 0.0 = invisible, 1.0 = fully opaque
+
+    // Heatbar display
+    private volatile int heatbarDuration = 30;  // seconds of porosity history shown on the glasses
+
+    // ── Last known data packets (shown on overview dashboard) ────────────────
+    private volatile String lastDataPacket = null;  // last JSON received from Python AI
 
     // ── Last known pool detection result (shown on dashboard) ─────────────────
     private volatile String lastPoolResult = "—";
@@ -71,4 +96,42 @@ public class ServerState {
 
     public String getLastPoolResult()        { return lastPoolResult; }
     public void   setLastPoolResult(String v){ this.lastPoolResult = v; }
+
+    // ── App settings getters / setters ────────────────────────────────────
+
+    public double  getVoltageMin()           { return voltageMin; }
+    public void    setVoltageMin(double v)   { this.voltageMin = v; }
+
+    public double  getVoltageMax()           { return voltageMax; }
+    public void    setVoltageMax(double v)   { this.voltageMax = v; }
+
+    public double  getAmperageMin()          { return amperageMin; }
+    public void    setAmperageMin(double v)  { this.amperageMin = v; }
+
+    public double  getAmperageMax()          { return amperageMax; }
+    public void    setAmperageMax(double v)  { this.amperageMax = v; }
+
+    public double  getGasFlowMin()           { return gasFlowMin; }
+    public void    setGasFlowMin(double v)   { this.gasFlowMin = v; }
+
+    public double  getGasFlowMax()           { return gasFlowMax; }
+    public void    setGasFlowMax(double v)   { this.gasFlowMax = v; }
+
+    public boolean isShowPoolDetection()           { return showPoolDetection; }
+    public void    setShowPoolDetection(boolean v) { this.showPoolDetection = v; }
+
+    public double  getOverlayOpacity()         { return overlayOpacity; }
+    public void    setOverlayOpacity(double v) { this.overlayOpacity = v; }
+
+    public int  getHeatbarDuration()       { return heatbarDuration; }
+    public void setHeatbarDuration(int v)  { this.heatbarDuration = v; }
+
+    // ── Camera toggle ─────────────────────────────────────────────────────
+    public boolean isCameraEnabled()           { return cameraEnabled; }
+    public void    toggleCamera()              { cameraEnabled = !cameraEnabled; }
+    public void    setCameraEnabled(boolean v) { this.cameraEnabled = v; }
+
+    // ── Last AI data packet ───────────────────────────────────────────────
+    public String getLastDataPacket()        { return lastDataPacket; }
+    public void   setLastDataPacket(String v){ this.lastDataPacket = v; }
 }
