@@ -62,8 +62,6 @@ MIN_CIRCULARITY = 0.4
 # 0.1 = 10 times per second, which is fast enough for smooth tracking.
 POLL_INTERVAL = 0.1
 
-TRACKING_ENABLED = True  # set to False to pause detection without stopping the script
-
 # Debug mode — saves the thresholded binary mask to debug/ for every processed frame.
 # Open these images to see exactly what the detector sees after thresholding.
 # Useful when nothing is being detected and you need to tune the threshold.
@@ -260,10 +258,6 @@ def main():
         if time.time() - last_settings_fetch >= SETTINGS_REFRESH_INTERVAL:
             fetch_settings()
             last_settings_fetch = time.time()
-
-        if not TRACKING_ENABLED:
-            time.sleep(POLL_INTERVAL)
-            continue
 
         # Find all frame files currently in the frames/ folder, sorted by name
         files = sorted(glob.glob(FRAMES_DIR + "frame_?????.jpg"))

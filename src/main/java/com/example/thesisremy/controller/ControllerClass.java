@@ -17,9 +17,10 @@ import com.example.thesisremy.serviceandcomponents.ServerState;
 
       GET  /stream        — the Android glasses connect here to receive live welding data
                             over a persistent SSE connection (Server-Sent Events).
-                            Two named event types are sent over this connection:
-                              "welddata"      — Python AI JSON (current, voltage, gas ...)
+                            Three named event types are sent over this connection:
+                              "welddata"      — Python AI JSON (current, voltage, gas flow ...)
                               "pooldetection" — weld pool coordinates from pool_detector.py
+                              "cameraControl" — server → glasses command to start/stop camera
 
       GET  /frames/count  — returns how many camera frames have been saved this session.
 

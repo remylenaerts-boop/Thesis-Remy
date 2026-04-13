@@ -69,6 +69,7 @@ public class Broadcast {
 
         Currently used event names:
           "pooldetection" — weld pool coordinates from pool_detector.py
+          "cameraControl" — start/stop command sent to the glasses when camera is toggled
     */
     public void broadcastNamed(String eventName, String json) {
         emitters.removeIf(emitter -> {

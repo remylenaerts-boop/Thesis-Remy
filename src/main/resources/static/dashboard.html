@@ -528,7 +528,7 @@
         <!-- ══ OVERVIEW ════════════════════════════════════════════ -->
         <div class="page active" id="page-overview">
 
-            <div class="stat-row">
+            <div class="stat-row" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="stat-card" id="sc-ai">
                     <div class="stat-label">Python AI (port 8060)</div>
                     <div class="stat-val" id="sv-ai">—</div>
@@ -543,11 +543,6 @@
                     <div class="stat-label">Streaming</div>
                     <div class="stat-val" id="sv-streaming">—</div>
                     <div class="stat-hint">Broadcasting to glasses</div>
-                </div>
-                <div class="stat-card warn">
-                    <div class="stat-label">SSE Clients</div>
-                    <div class="stat-val warn" id="sv-clients">0</div>
-                    <div class="stat-hint">Glasses on stream</div>
                 </div>
             </div>
 
@@ -950,8 +945,6 @@
                 updateStatCard('sc-ai',        'sv-ai',        s.pythonAiReachable  ? 'ok'   : 'err',  s.pythonAiReachable  ? 'Reachable' : 'Offline');
                 updateStatCard('sc-polling',   'sv-polling',   s.pollingEnabled     ? 'ok'   : 'warn', s.pollingEnabled     ? 'Active'    : 'Paused');
                 updateStatCard('sc-streaming', 'sv-streaming', s.streamingEnabled   ? 'ok'   : 'warn', s.streamingEnabled   ? 'Active'    : 'Paused');
-
-                document.getElementById('sv-clients').textContent = s.connectedClients;
 
                 // Toggles
                 setSw('sw-polling',   s.pollingEnabled);

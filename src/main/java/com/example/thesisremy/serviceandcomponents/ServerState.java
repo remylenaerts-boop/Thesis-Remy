@@ -63,7 +63,7 @@ public class ServerState {
     private volatile int heatbarDuration = 30;  // seconds of porosity history shown on the glasses
 
     // ── Last known data packets (shown on overview dashboard) ────────────────
-    private volatile String lastDataPacket = null;  // last JSON received from Python AI
+    private volatile String lastDataPacket = "";  // last JSON received from Python AI
 
     // ── Last known pool detection result (shown on dashboard) ─────────────────
     private volatile String lastPoolResult = "—";
