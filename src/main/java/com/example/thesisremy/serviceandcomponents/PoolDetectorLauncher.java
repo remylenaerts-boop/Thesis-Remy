@@ -21,7 +21,8 @@ import java.io.File;
     Python command resolution:
       - Tries "python" first  (standard on Windows)
       - Falls back to "python3" (standard on macOS / Linux)
-      - Logs an error and skips if neither is found on PATH
+      - If found but packages are missing, auto-runs: pip install -r requirements.txt
+      - Logs an error and skips if Python is not found or install fails
 */
 @Configuration
 public class PoolDetectorLauncher {
@@ -56,21 +57,52 @@ public class PoolDetectorLauncher {
     }
 
     /*
-        Tries "python" and "python3" in order and returns whichever one exists on PATH.
-        Returns null if neither is available.
+        Tries "python" and "python3" in order.
+        For each candidate:
+          1. Checks the command exists.
+          2. Checks that cv2/numpy/requests are importable.
+          3. If not, automatically runs "pip install -r requirements.txt" and retries.
+        Returns the first command that ends up with all packages available, or null.
     */
     private String resolvePython() {
         for (String cmd : new String[]{"python", "python3"}) {
             try {
-                Process p = new ProcessBuilder(cmd, "--version")
+                Process version = new ProcessBuilder(cmd, "--version")
                         .redirectErrorStream(true)
                         .start();
-                if (p.waitFor() == 0) return cmd;
+                if (version.waitFor() != 0) continue;
+
+                if (canImport(cmd)) return cmd;
+
+                // Packages missing — try to install them automatically
+                System.out.println("[Launcher] '" + cmd + "' is missing required packages — running pip install...");
+                Process pip = new ProcessBuilder(cmd, "-m", "pip", "install", "-r", "requirements.txt")
+                        .inheritIO()
+                        .start();
+                int exitCode = pip.waitFor();
+                if (exitCode != 0) {
+                    System.err.println("[Launcher] pip install failed (exit " + exitCode + ") — detector will not start.");
+                    continue;
+                }
+
+                if (canImport(cmd)) {
+                    System.out.println("[Launcher] Packages installed successfully.");
+                    return cmd;
+                }
+
+                System.err.println("[Launcher] Packages still not importable after install — detector will not start.");
             } catch (Exception ignored) {
                 // command not found — try the next one
             }
         }
         return null;
+    }
+
+    private boolean canImport(String pythonCmd) throws Exception {
+        Process p = new ProcessBuilder(pythonCmd, "-c", "import cv2, numpy, requests")
+                .redirectErrorStream(true)
+                .start();
+        return p.waitFor() == 0;
     }
 
     @PreDestroy
