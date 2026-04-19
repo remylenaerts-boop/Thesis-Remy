@@ -17,16 +17,15 @@ import com.example.thesisremy.serviceandcomponents.ServerState;
 
       GET  /stream        — the Android glasses connect here to receive live welding data
                             over a persistent SSE connection (Server-Sent Events).
-                            Three named event types are sent over this connection:
+                            Two named event types are sent over this connection:
                               "welddata"      — Python AI JSON (current, voltage, gas flow ...)
-                              "pooldetection" — weld pool coordinates from pool_detector.py
                               "cameraControl" — server → glasses command to start/stop camera
 
       GET  /frames/count  — returns how many camera frames have been saved this session.
 
       POST /pool          — called by pool_detector.py with the latest detection result.
-                            The server immediately rebroadcasts it to all glasses as
-                            a named SSE event "pooldetection".
+                            Result is stored for the dashboard but NOT forwarded to the glasses.
+                            Pool tracking is only used for the annotated video recording.
 
     Note: the WebSocket endpoint /frames is NOT defined here. It is registered separately
     in WebSocketConfig because WebSocket connections are handled differently from regular HTTP.
@@ -59,7 +58,7 @@ public class ControllerClass {
 
     /*
         Returns the number of frames saved so far in the current session.
-        Handy for quickly checking during a demo whether frames are coming in.
+        Handy for quickly checking whether frames are coming in.
         Example response: { "framesSaved": 42 }
     */
     @GetMapping("/frames/count")
@@ -70,19 +69,13 @@ public class ControllerClass {
 
     /*
         Called by pool_detector.py every time it processes a new frame.
-        The raw JSON body (poolDetected, poolX, poolY, poolRadius) is forwarded
-        immediately to all connected glasses as a named SSE event "pooldetection".
-
-        The glasses can listen specifically for this event name and ignore welddata,
-        keeping the two data streams completely independent on the same connection.
+        The result is stored on the dashboard for monitoring only.
+        It is NOT forwarded to the glasses — pool tracking is used exclusively
+        for the annotated video recording, not as a live AR overlay.
     */
     @PostMapping("/pool")
     public ResponseEntity<Void> receivePoolDetection(@RequestBody String json) {
-        // Tracking toggle — accept the POST but don't forward to glasses when disabled
-        if (serverState.isTrackingEnabled()) {
-            broadcast.broadcastNamed("pooldetection", json);
-            serverState.setLastPoolResult(json);
-        }
+        serverState.setLastPoolResult(json);
         return ResponseEntity.ok().build();
     }
 }

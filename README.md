@@ -1,51 +1,110 @@
-# Thesis-Remy — AR Welding Guidance Server
+# AR Welding Guidance — Server
 
-A Spring Boot server that acts as the communication hub for an augmented reality welding guidance system.
-It receives live welding process data from a local AI program and streams it to Android smart glasses over Wi-Fi.
-It also receives the glasses' camera feed via WebSocket and stitches each recording session into a video file.
+**KU Leuven Master's Thesis · Remy Lenaerts · 2025–2026**
+
+This repository contains the central server component of a proof-of-concept augmented reality welding guidance system. A welder wearing Epson Moverio BT-300 AR glasses receives live feedback about the welding process — current, voltage, shielding gas flow, and a porosity risk indicator — without having to look away from the weld. The server is the communication hub that sits between a Python AI program reading the sensor data and the Android glasses displaying it.
 
 ---
 
-## How it works
+## What the system does
+
+A Python AI program (separate repository, developed by thesis partner Yam) reads live welding sensor data via NI-DAQmx hardware and exposes it as a JSON endpoint on the local machine. This server polls that endpoint every second, deduplicates the data, and streams it to the glasses over Wi-Fi using Server-Sent Events. At the same time, the glasses stream their camera feed back to the server over WebSocket. A weld pool detector (`pool_detector.py`) processes every incoming frame using OpenCV, draws a detection circle on each one, and the server stitches the annotated frames into an MP4 recording at the end of each session.
 
 ```
 Python AI (port 8060)
-        │  polls every second
+        │  HTTP GET every second
         ▼
-  Spring Boot Server (port 9999)
-        │                        │
-        │ SSE /stream            │ WebSocket /frames
-        ▼                        ▼
-  Android Glasses          Android Glasses
-  (receives JSON)          (sends camera frames)
-        │
-        ▼
-  videos/video_TIMESTAMP.mp4   ← stitched automatically on disconnect
+  Spring Boot Server (port 9999)  ←──── pool_detector.py (auto-started)
+        │                        │              │
+        │ SSE /stream            │ WS /frames   │ POST /pool
+        ▼                        ▼              │
+  Android Glasses          frames/ folder ──────┘
+  (live data overlay)            │
+                                 ▼
+                        annotated/frame_NNNNN.jpg
+                                 │
+                                 ▼
+                        videos/video_TIMESTAMP.mp4
 ```
 
-- **SSE `/stream`** — Android glasses connect here and receive live JSON guidance data.
-- **WebSocket `/frames`** — Android glasses stream raw JPEG camera frames here; frames are saved to `frames/` and automatically stitched into an MP4 in `videos/` when the glasses disconnect.
-- **GET `/frames/count`** — returns how many frames have been saved in the current session.
-- **mDNS** — the server advertises itself as `sse-server.local` so the glasses can find it by name instead of by IP address.
+- **SSE `/stream`** — glasses subscribe here and receive live welding data as named JSON events. Two event types: `welddata` (sensor readings + porosity) and `cameraControl` (server command to start/stop the camera).
+- **WebSocket `/frames`** — glasses stream raw JPEG camera frames here when camera capture is enabled. Frames are saved to `frames/` and processed by the pool detector.
+- **Pool detector** — `pool_detector.py` starts automatically with the server. It watches `frames/` for new images, runs a brightness-based blob detection pipeline, and saves an annotated copy of every frame to `annotated/` with a circle drawn around the detected pool. The result is stored on the server for the dashboard but is **not** forwarded to the glasses — pool tracking is for the video recording only.
+- **Video recording** — when the glasses disconnect (after a 5-second grace period to handle Wi-Fi hiccups), the server stitches all annotated frames into a timestamped MP4 using ffmpeg.
+- **Dashboard** — a web interface at `http://localhost:9999/dashboard` lets the operator control the session, tune detection parameters, and review recorded videos.
+- **mDNS** — the server advertises itself as `sse-server.local` on the local network so the glasses always find it by name, regardless of what IP address the router assigned.
+
+---
+
+## Project structure
+
+```
+src/main/java/com/example/thesisremy/
+├── ThesisRemyApplication.java          — entry point
+├── controller/
+│   ├── ControllerClass.java            — SSE /stream, POST /pool, GET /frames/count
+│   └── DashboardController.java        — dashboard page and all /api/* endpoints
+└── serviceandcomponents/
+    ├── ServerState.java                — shared runtime state (volatile flags + settings)
+    ├── Broadcast.java                  — SSE emitter list, heartbeat, broadcast methods
+    ├── DataGetter.java                 — @Scheduled Python AI poller
+    ├── FrameWebSocketHandler.java      — WebSocket frame handler, ffmpeg video stitching
+    ├── PoolDetectorLauncher.java       — starts pool_detector.py on server startup
+    ├── DnsConfig.java                  — JmDNS mDNS registration
+    ├── WebSocketConfig.java            — registers /frames endpoint (512 KB buffer)
+    └── StartupLogger.java              — prints endpoint URLs to console on startup
+
+pool_detector.py                        — OpenCV weld pool detector (Python)
+requirements.txt                        — Python dependencies
+src/main/resources/static/
+├── dashboard.html                      — operator dashboard (single-page HTML/CSS/JS)
+└── KU-Leuven-logo.png
+```
 
 ---
 
 ## Requirements
 
-### 1. Java Development Kit (JDK) 17
+### 1. Java 17
 
-The project targets Java 17. Download the JDK from:
-- **Windows/macOS/Linux:** https://adoptium.net (Eclipse Temurin — recommended, free)
+The project targets Java 17. If you don't have it:
 
-After installing, verify in a terminal:
+**Windows / macOS / Linux**
+Download Eclipse Temurin from https://adoptium.net — it's free and easy to set up.
+
+Verify after installing:
 ```
 java -version
 ```
-You should see `openjdk 17` (or higher).
 
-### 2. ffmpeg
+### 2. Python 3
 
-Used to stitch JPEG frames into MP4 videos. Install it for your OS:
+Required for `pool_detector.py`. The server launches it automatically — you don't need to start it yourself.
+
+**Windows**
+```
+winget install Python.Python.3
+```
+Make sure to check **"Add Python to PATH"** during installation, or the server won't be able to find it.
+
+**macOS**
+```
+brew install python
+```
+
+**Linux (Debian/Ubuntu)**
+```
+sudo apt install python3 python3-pip
+```
+
+Then install the required Python packages from the project root:
+```
+pip install -r requirements.txt
+```
+
+### 3. ffmpeg
+
+Used to stitch the saved JPEG frames into MP4 videos.
 
 **Windows**
 ```
@@ -62,45 +121,27 @@ brew install ffmpeg
 sudo apt install ffmpeg
 ```
 
-After installing, you do **not** need to configure anything — the server finds ffmpeg automatically.
+The server locates ffmpeg automatically — no PATH configuration needed on Windows if you used winget.
 
-### 3. An IDE (recommended)
+### 4. Windows Firewall rule (Windows only)
 
-**IntelliJ IDEA Community Edition** (free) is the recommended IDE for this project.
-Download: https://www.jetbrains.com/idea/download
+The server uses mDNS (UDP port 5353) so the glasses can find it by name. Windows blocks this port by default and you need to add one inbound rule manually:
 
-Required plugins (install from *Settings → Plugins*):
-- **Java** — built into IntelliJ, no action needed
-- **Spring Boot** — search "Spring" in the plugin marketplace, install *Spring Boot*
+1. Press `Windows + R`, type `wf.msc`, press Enter
+2. Click **Inbound Rules** → **New Rule...**
+3. Select **Port** → Next
+4. Select **UDP**, type `5353` → Next
+5. Select **Allow the connection** → Next
+6. Leave all three profile boxes checked → Next
+7. Name it `mDNS - Thesis AR Server` → Finish
 
-**VS Code** also works. Install these extensions:
-- Extension Pack for Java (by Microsoft)
-- Spring Boot Extension Pack (by VMware)
+This is a one-time step per machine.
 
-### 4. Maven
+### 5. IDE (recommended)
 
-Maven is the build tool used to compile and run the project. You do **not** need to install it separately — the project includes a Maven wrapper (`mvnw`) that downloads the correct version automatically.
+**IntelliJ IDEA Community Edition** is the easiest option — it detects the Maven project automatically when you open the folder.
 
-### 5. Windows Firewall rule (Windows only)
-
-The server advertises itself on the local Wi-Fi network so that the Android glasses can find it by name (`sse-server.local`) without needing to know the server's IP address. It does this using a technology called **mDNS** (multicast DNS) — the same mechanism your phone uses to find a Chromecast or wireless printer on your home network.
-
-mDNS works by sending a small broadcast message over the network on **UDP port 5353**. The glasses send a message that essentially says *"is there a device called sse-server.local on this network?"*. The server is listening for exactly these questions and replies *"yes, that's me, here is my IP address"*. After that exchange the glasses know where to connect.
-
-On a fresh Windows installation the built-in firewall blocks all incoming network traffic by default — including these mDNS broadcast messages. The glasses ask the question, but Windows silently drops it before the server ever hears it. The result is that `sse-server.local` never resolves to an IP address and the connection never happens.
-
-**To fix this, add one inbound firewall rule:**
-
-1. Press `Windows + R`, type `wf.msc`, press Enter — this opens *Windows Defender Firewall with Advanced Security*
-2. Click **Inbound Rules** in the left panel
-3. Click **New Rule...** in the right panel
-4. Select **Port** → click Next
-5. Select **UDP**, enter `5353` in the specific local ports field → click Next
-6. Select **Allow the connection** → click Next
-7. Leave all three boxes checked (Domain, Private, Public) → click Next
-8. Give it a name such as `mDNS - Thesis AR Server` → click Finish
-
-This only needs to be done once per machine. After adding the rule the glasses will be able to resolve `sse-server.local` automatically as long as both devices are on the same Wi-Fi network.
+**VS Code** also works with the Extension Pack for Java and Spring Boot Extension Pack installed.
 
 ---
 
@@ -112,17 +153,20 @@ git clone https://github.com/your-username/Thesis-Remy.git
 cd Thesis-Remy
 ```
 
-### Step 2 — Open in your IDE
+### Step 2 — Install Python dependencies
+```
+pip install -r requirements.txt
+```
 
-- **IntelliJ:** File → Open → select the `Thesis-Remy` folder. IntelliJ detects the `pom.xml` automatically and imports the project.
+### Step 3 — Open in your IDE
+
+- **IntelliJ:** File → Open → select the `Thesis-Remy` folder. IntelliJ picks up `pom.xml` and imports everything automatically. Wait for the dependency download to finish.
 - **VS Code:** File → Open Folder → select the `Thesis-Remy` folder.
 
-Wait for the IDE to finish downloading dependencies (progress bar at the bottom).
-
-### Step 3 — Run the server
+### Step 4 — Run the server
 
 **From IntelliJ:**
-Open `ThesisRemyApplication.java` and click the green run button next to the `main` method.
+Open `ThesisRemyApplication.java` and click the green run button next to `main`.
 
 **From the terminal:**
 ```
@@ -133,59 +177,90 @@ Open `ThesisRemyApplication.java` and click the green run button next to the `ma
 ./mvnw spring-boot:run
 ```
 
-### Step 4 — Verify it is running
+On startup you will see:
+```
+[Launcher] pool_detector.py started
+[Detector] Started — watching frames/ for new frames
+```
+The pool detector is running. You don't need to start it separately.
 
-Open a browser and go to:
-```
-http://localhost:9999/frames/count
-```
-You should see: `{ "framesSaved": 0 }`
+### Step 5 — Open the dashboard
 
-The server is also reachable from other devices on the same Wi-Fi network via:
 ```
-http://sse-server.local:9999/stream       ← SSE endpoint (Android glasses)
-ws://sse-server.local:9999/frames         ← WebSocket endpoint (camera frames)
+http://localhost:9999/dashboard
 ```
+
+From here you can start a session, enable camera capture, tune detection parameters, and review recordings.
+
+### Step 6 — Connect the glasses
+
+Make sure the server machine and the glasses are on the same Wi-Fi network. Start the AR app on the glasses — it connects automatically to `sse-server.local:9999/stream` via mDNS. If the connection fails, check the firewall rule from step 4 of the requirements.
+
+---
+
+## Dashboard overview
+
+| Page | What it does |
+|---|---|
+| **Overview** | Start/stop session, live sensor readings, Python AI and glasses connection status |
+| **Camera & Detection** | Enable/disable camera capture, frame counter, WebSocket status, recorded video list |
+| **Camera Settings** | Tune detection parameters live (changes take effect within 10 seconds) |
+| **App Settings** | Gauge display ranges and heatbar duration pushed to the Android app |
+| **API Endpoints** | Reference list of all server endpoints |
 
 ---
 
 ## Configuration
 
-All configuration is in [`src/main/resources/application.properties`](src/main/resources/application.properties):
+Server port and application name are in [`src/main/resources/application.properties`](src/main/resources/application.properties). The default port is `9999`.
 
-| Property | Default | Description |
+The Python AI endpoint is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `DataGetter.java`. Change this if your AI program runs on a different port.
+
+**Pool detector parameters** (tunable live from the Camera Settings page):
+
+| Parameter | Default | What it does |
 |---|---|---|
-| `server.port` | `9999` | Port the server listens on |
-| `spring.application.name` | `Thesis-Remy` | Application name |
+| `BRIGHTNESS_THRESHOLD` | `200` | Pixels above this value (0–255) are treated as the weld pool. Lower if nothing is detected. |
+| `BLUR_KERNEL` | `7` | Gaussian blur kernel size before thresholding. Must be odd. Higher = more smoothing. |
+| `MORPH_KERNEL` | `8` | Erosion/dilation kernel size. Higher = more aggressive noise removal and hole filling. |
+| `MIN_BLOB_AREA` | `700` | Minimum blob size in pixels. Blobs smaller than this are discarded as noise. |
+| `MIN_CIRCULARITY` | `0.62` | How round the blob must be (0.0–1.0, 1.0 = perfect circle). Rejects sparks and irregular reflections. |
 
-The external AI data source is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `DataGetter.java`. Change this if your AI program runs on a different port.
+Enable `DEBUG_MODE = True` at the top of `pool_detector.py` to save binary threshold masks to `debug/` — useful for tuning the threshold when detection is not working.
 
 ---
 
-## Output files
+## Output folders
 
 | Folder | Contents |
 |---|---|
-| `frames/` | Temporary JPEG frames from the current session — deleted automatically after stitching |
-| `videos/` | Finished MP4 recordings, one per session, named `video_YYYYMMDD_HHmmss.mp4` |
+| `frames/` | Raw JPEG frames from the current session (cleared after video is stitched) |
+| `annotated/` | Frames with the detection circle drawn on them — used for the video output |
+| `videos/` | Finished MP4 recordings, named `video_YYYYMMDD_HHmmss.mp4` |
 
-Both folders are created automatically in the project root when the server starts.
+All folders are created automatically when the server starts. They are excluded from Git.
 
 ---
 
 ## Troubleshooting
 
-**The glasses cannot find the server by name (`sse-server.local`)**
-Make sure you have added the UDP 5353 inbound firewall rule described in requirement 5 above. As a fallback, connect using the server's IP address directly — find it by running `ipconfig` in a terminal on Windows or `ifconfig` on macOS/Linux, and look for the IPv4 address on your Wi-Fi adapter.
+**Pool detector does not start**
+Check that Python is on your PATH: `python --version`. If that works, make sure the dependencies are installed: `pip install -r requirements.txt`. The server console shows a specific error if Python is not found.
 
-**Video stitching fails / no MP4 is created**
-Make sure ffmpeg is installed (`winget install ffmpeg` on Windows). If ffmpeg is missing, the frames are kept in `frames/` so no data is lost — you can stitch manually:
+**Nothing is ever detected**
+Enable `DEBUG_MODE = True` in `pool_detector.py` and look at the images saved in `debug/`. If they are all black, the threshold is too high — lower `BRIGHTNESS_THRESHOLD` from the Camera Settings page. During testing without a real welder, point a flashlight at the glasses camera to simulate the weld pool.
+
+**Glasses cannot find the server (`sse-server.local` not resolving)**
+Add the UDP 5353 inbound firewall rule described above. As a fallback, connect using the server's IP address directly. Find it with `ipconfig` on Windows or `ifconfig` on macOS/Linux and look for the IPv4 address of your Wi-Fi adapter.
+
+**Video is not created after disconnecting**
+Check that ffmpeg is installed and reachable: `ffmpeg -version`. If the command is not found, re-run `winget install ffmpeg` and open a new terminal window. If ffmpeg fails for any other reason, the raw frames are kept in `frames/` so nothing is lost — you can stitch manually:
 ```
-ffmpeg -framerate 30 -i frames/frame_%05d.jpg -c:v libx264 -pix_fmt yuv420p output.mp4
+ffmpeg -framerate 30 -i annotated/frame_%05d.jpg -c:v libx264 -pix_fmt yuv420p output.mp4
 ```
 
 **Port 9999 is already in use**
-Change `server.port` in `application.properties` to any free port (e.g. `8080`).
+Change `server.port` in `application.properties` to a free port (e.g. `8080`).
 
-**The AI data source is not available**
-If nothing is running on port 8060, `DataGetter` will log an error every second. The rest of the server (SSE streaming, WebSocket frame receiving) continues to work normally.
+**Python AI is not reachable**
+If nothing is running on port 8060, `DataGetter` logs a connection error every second. The rest of the server — SSE streaming, camera recording, pool detection — keeps working normally. The error resolves automatically once the AI program starts.

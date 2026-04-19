@@ -35,7 +35,6 @@ public class StartupLogger {
             System.out.println("--------------------------------------");
             System.out.println("  SSE stream:   http://" + serverName + ".local:" + port + "/stream");
             System.out.println("    event: welddata      — Python AI welding parameters");
-            System.out.println("    event: pooldetection — weld pool coordinates (OpenCV)");
             System.out.println("    event: cameraControl — start/stop camera on the glasses");
             System.out.println("  WebSocket:    ws://"   + serverName + ".local:" + port + "/frames");
             System.out.println("    binary frames in    — camera feed from glasses");

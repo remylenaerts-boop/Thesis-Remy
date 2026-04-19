@@ -92,7 +92,6 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
 
         String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", frameCounter.getAndIncrement());
         Files.write(Paths.get(filename), bytes);
-        System.out.println("[WS] Saved: " + filename + " (" + bytes.length + " bytes)");
     }
 
     /*

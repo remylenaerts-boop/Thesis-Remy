@@ -34,6 +34,10 @@ build/
 thesis_server_text.txt
 thesis_flowcharts.txt
 thesis_tracking_methodology.txt
+thesis_writing_prompt.txt
+DOCUMENTATION.txt
+test_webcam.py
+test_pipeline.py
 
 ### Generated at runtime — created automatically when the server starts ###
 frames/

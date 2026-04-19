@@ -31,7 +31,6 @@ import java.util.Map;
       GET  /api/status            — current server status as JSON
       POST /api/toggle/polling    — enable / disable DataGetter polling
       POST /api/toggle/streaming  — enable / disable SSE broadcast to glasses
-      POST /api/toggle/tracking   — enable / disable weld pool detection forwarding
       GET  /api/videos            — list of recorded MP4 files in videos/
       GET  /api/settings          — current detector settings (also read by pool_detector.py)
       POST /api/settings          — update detector settings from the dashboard
@@ -44,7 +43,7 @@ public class DashboardController {
     private final FrameWebSocketHandler  frameHandler;
     private final RestTemplate           restTemplate = new RestTemplate();
 
-    private static final String PYTHON_AI_URL = "http://127.0.0.1:8060/api/v1/live";
+    private static final String PYTHON_AI_URL = ServerState.PYTHON_AI_URL;
     private static final String VIDEOS_DIR    = "videos/";
 
     public DashboardController(ServerState serverState,
@@ -76,7 +75,6 @@ public class DashboardController {
             "websocketActive",   frameHandler.isWebSocketActive(),
             "pythonAiReachable", checkPythonAi(),
             "lastDataPacket",    serverState.getLastDataPacket(),
-            "trackingEnabled",   serverState.isTrackingEnabled(),
             "lastPoolResult",    serverState.getLastPoolResult()
         ));
     }
@@ -103,12 +101,6 @@ public class DashboardController {
     public ResponseEntity<Map<String, Boolean>> toggleStreaming() {
         serverState.toggleStreaming();
         return ResponseEntity.ok(Map.of("streamingEnabled", serverState.isStreamingEnabled()));
-    }
-
-    @PostMapping("/api/toggle/tracking")
-    public ResponseEntity<Map<String, Boolean>> toggleTracking() {
-        serverState.toggleTracking();
-        return ResponseEntity.ok(Map.of("trackingEnabled", serverState.isTrackingEnabled()));
     }
 
     // Toggles camera capture and immediately tells the glasses to start/stop via SSE
@@ -237,8 +229,6 @@ public class DashboardController {
             "amperageMax",       serverState.getAmperageMax(),
             "gasFlowMin",        serverState.getGasFlowMin(),
             "gasFlowMax",        serverState.getGasFlowMax(),
-            "showPoolDetection", serverState.isShowPoolDetection(),
-            "overlayOpacity",    serverState.getOverlayOpacity(),
             "heatbarDuration",   serverState.getHeatbarDuration(),
             "cameraEnabled",     serverState.isCameraEnabled()
         ));
@@ -253,8 +243,6 @@ public class DashboardController {
         if (body.containsKey("amperageMax"))       serverState.setAmperageMax(      ((Number) body.get("amperageMax")).doubleValue());
         if (body.containsKey("gasFlowMin"))        serverState.setGasFlowMin(       ((Number) body.get("gasFlowMin")).doubleValue());
         if (body.containsKey("gasFlowMax"))        serverState.setGasFlowMax(       ((Number) body.get("gasFlowMax")).doubleValue());
-        if (body.containsKey("showPoolDetection")) serverState.setShowPoolDetection((Boolean) body.get("showPoolDetection"));
-        if (body.containsKey("overlayOpacity"))    serverState.setOverlayOpacity(   ((Number) body.get("overlayOpacity")).doubleValue());
         if (body.containsKey("heatbarDuration"))   serverState.setHeatbarDuration(  ((Number) body.get("heatbarDuration")).intValue());
         return ResponseEntity.ok().build();
     }

@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServerState {
 
+    // Shared constant — single place to update if the Python AI port changes
+    public static final String PYTHON_AI_URL = "http://127.0.0.1:8060/api/v1/live";
+
     // ── Runtime toggles ───────────────────────────────────────────────────────
 
     // When false, DataGetter stops polling the Python AI entirely
@@ -25,19 +28,15 @@ public class ServerState {
     // Starts as false — enable from the dashboard once everything is connected and configured
     private volatile boolean streamingEnabled = false;
 
-    // When false, pool detection results from POST /pool are ignored and not forwarded
-    // Starts as false — enable from the dashboard once everything is connected and configured
-    private volatile boolean trackingEnabled  = false;
-
     // ── Detector settings ─────────────────────────────────────────────────────
     // These are read by pool_detector.py via GET /api/settings.
     // Changing them from the dashboard takes effect on the next detector poll cycle.
 
     private volatile int    brightnessThreshold = 200;  // 0-255, pixels brighter than this = blob
-    private volatile int    blurKernel          = 5;    // must be odd: 3, 5, 7, 9 ...
-    private volatile int    morphKernel         = 5;    // erosion/dilation kernel size
-    private volatile int    minBlobArea         = 50;   // minimum blob area in pixels
-    private volatile double minCircularity      = 0.4;  // 0.0-1.0, 1.0 = perfect circle
+    private volatile int    blurKernel          = 7;    // must be odd: 3, 5, 7, 9 ...
+    private volatile int    morphKernel         = 8;    // erosion/dilation kernel size
+    private volatile int    minBlobArea         = 700;  // minimum blob area in pixels
+    private volatile double minCircularity      = 0.62; // 0.0-1.0, 1.0 = perfect circle
     private volatile int    videoFramerate      = 30;   // fps used when stitching MP4
 
     // ── Camera capture (proof-of-concept feature — off by default) ───────────
@@ -55,10 +54,6 @@ public class ServerState {
     private volatile double gasFlowMin    =   0.0;   // l/min
     private volatile double gasFlowMax    =  20.0;   // l/min
 
-    // AR overlay options
-    private volatile boolean showPoolDetection = true;   // draw detection circle on glasses
-    private volatile double  overlayOpacity    = 0.8;   // 0.0 = invisible, 1.0 = fully opaque
-
     // Heatbar display
     private volatile int heatbarDuration = 30;  // seconds of porosity history shown on the glasses
 
@@ -72,11 +67,9 @@ public class ServerState {
 
     public boolean isPollingEnabled()   { return pollingEnabled; }
     public boolean isStreamingEnabled() { return streamingEnabled; }
-    public boolean isTrackingEnabled()  { return trackingEnabled; }
 
     public void togglePolling()   { pollingEnabled   = !pollingEnabled; }
     public void toggleStreaming() { streamingEnabled = !streamingEnabled; }
-    public void toggleTracking()  { trackingEnabled  = !trackingEnabled; }
 
     // ── Detector settings getters / setters ───────────────────────────────────
 
@@ -116,12 +109,6 @@ public class ServerState {
 
     public double  getGasFlowMax()           { return gasFlowMax; }
     public void    setGasFlowMax(double v)   { this.gasFlowMax = v; }
-
-    public boolean isShowPoolDetection()           { return showPoolDetection; }
-    public void    setShowPoolDetection(boolean v) { this.showPoolDetection = v; }
-
-    public double  getOverlayOpacity()         { return overlayOpacity; }
-    public void    setOverlayOpacity(double v) { this.overlayOpacity = v; }
 
     public int  getHeatbarDuration()       { return heatbarDuration; }
     public void setHeatbarDuration(int v)  { this.heatbarDuration = v; }

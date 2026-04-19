@@ -24,7 +24,7 @@ public class DataGetter {
     private final ServerState  serverState;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String SOURCE_URL = "http://127.0.0.1:8060/api/v1/live";
+    private static final String SOURCE_URL = ServerState.PYTHON_AI_URL;
 
     // Stores the last received value so duplicate responses are not rebroadcast
     private String lastJson = null;

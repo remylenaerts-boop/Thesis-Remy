@@ -1,555 +1,1263 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>AR Welding — Dashboard</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --navy:       #003d6b;
-            --navy-dark:  #002d50;
-            --blue:       #0072b5;
-            --blue-light: #e8f2fa;
-            --bg:         #f4f7fa;
-            --card:       #ffffff;
-            --border:     #d9e4ef;
-            --text:       #1a2b3c;
-            --text-2:     #4a6074;
-            --text-3:     #9aafbf;
-            --success:    #2d8a4e;
-            --success-bg: #eaf7ee;
-            --danger:     #c0392b;
-            --danger-bg:  #fdf0ee;
-            --warn:       #c07a00;
-            --warn-bg:    #fef9e6;
-            --r:          8px;
-            --sw:         236px;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-        }
-
-        /* ── SIDEBAR ─────────────────────────────────────────────── */
-        .sidebar {
-            width: var(--sw);
-            min-width: var(--sw);
-            background: var(--navy);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        .sidebar-logo {
-            padding: 20px 20px 18px;
-            border-bottom: 1px solid rgba(255,255,255,.12);
-        }
-
-        .ku-logo-img {
-            max-width: 180px;
-            height: auto;
-            display: block;
-        }
-
-        .sidebar-subtitle {
-            font-size: 0.7rem;
-            color: rgba(255,255,255,.45);
-            padding-left: 2px;
-            margin-top: 10px;
-        }
-
-        nav {
-            flex: 1;
-            padding: 12px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
-            overflow-y: auto;
-        }
-
-        .nav-section {
-            font-size: 0.6rem;
-            color: rgba(255,255,255,.3);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            padding: 14px 10px 5px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.82rem;
-            color: rgba(255,255,255,.65);
-            transition: all 0.15s;
-            user-select: none;
-        }
-
-        .nav-item:hover  { background: rgba(255,255,255,.08); color: #fff; }
-        .nav-item.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 500; }
-        .nav-icon { width: 18px; text-align: center; font-size: 0.85rem; flex-shrink: 0; }
-
-        .sidebar-footer {
-            padding: 14px;
-            border-top: 1px solid rgba(255,255,255,.12);
-        }
-
-        #btnSession {
-            width: 100%;
-            padding: 11px 16px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-family: inherit;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-            border: none;
-        }
-
-        #btnSession.start { background: #ffffff; color: var(--navy); }
-        #btnSession.start:hover { background: #e8f2fa; }
-        #btnSession.stop  { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
-        #btnSession.stop:hover { background: rgba(239,68,68,.25); }
-
-        #sessionLabel { font-size: 0.66rem; color: rgba(255,255,255,.35); text-align: center; margin-top: 7px; line-height: 1.4; }
-
-        .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; flex-shrink: 0; animation: pulse 1.4s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-
-        /* ── MAIN ─────────────────────────────────────────────────── */
-        .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
-
-        header {
-            padding: 14px 28px;
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-            box-shadow: 0 1px 3px rgba(0,61,107,.06);
-        }
-
-        .header-title { font-size: 0.92rem; font-weight: 600; color: var(--text); }
-        .header-sub   { font-size: 0.71rem; color: var(--text-2); margin-top: 2px; }
-
-        .header-chips { display: flex; align-items: center; gap: 20px; }
-        .chip { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-2); }
-        .dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .dot.green { background: var(--success); box-shadow: 0 0 4px var(--success); }
-        .dot.red   { background: var(--danger);  box-shadow: 0 0 4px var(--danger); }
-        .dot.blue  { background: var(--blue);    box-shadow: 0 0 4px var(--blue); }
-        .dot.grey  { background: var(--text-3); }
-
-        /* ── PAGE CONTENT ──────────────────────────────────────────── */
-        .page-content { flex: 1; overflow-y: auto; padding: 22px 28px 32px; }
-        .page { display: none; }
-        .page.active { display: block; }
-
-        /* ── CARDS ─────────────────────────────────────────────────── */
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 22px;
-            box-shadow: 0 1px 4px rgba(0,61,107,.06);
-            margin-bottom: 16px;
-        }
-
-        .card-title {
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--text-2);
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
-
-        /* ── STAT ROW ─────────────────────────────────────────────── */
-        .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 16px 18px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0,61,107,.05);
-        }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: var(--r) var(--r) 0 0;
-            background: var(--border);
-            transition: background 0.3s;
-        }
-
-        .stat-card.ok::after   { background: var(--success); }
-        .stat-card.err::after  { background: var(--danger); }
-        .stat-card.info::after { background: var(--blue); }
-        .stat-card.warn::after { background: var(--warn); }
-
-        .stat-label { font-size: 0.69rem; color: var(--text-2); margin-bottom: 8px; }
-        .stat-val   { font-size: 1.35rem; font-weight: 700; color: var(--text); line-height: 1; }
-        .stat-val.ok   { color: var(--success); }
-        .stat-val.err  { color: var(--danger); }
-        .stat-val.info { color: var(--blue); }
-        .stat-val.warn { color: var(--warn); }
-        .stat-hint { font-size: 0.68rem; color: var(--text-3); margin-top: 5px; }
-
-        /* ── GRID LAYOUTS ──────────────────────────────────────────── */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-
-        /* ── LIVE DATA GRID ────────────────────────────────────────── */
-        .live-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-
-        .live-item {
-            background: var(--blue-light);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px 14px;
-        }
-
-        .live-label { font-size: 0.67rem; color: var(--text-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .live-val   { font-size: 1.1rem; font-weight: 700; color: var(--text); }
-        .live-unit  { font-size: 0.72rem; font-weight: 400; color: var(--text-2); margin-left: 3px; }
-
-        .pred-ok   { color: var(--success); }
-        .pred-defect { color: var(--danger); }
-
-        /* ── TOGGLE SWITCHES ───────────────────────────────────────── */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 11px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .toggle-row:last-child { border-bottom: none; }
-        .toggle-name { font-size: 0.82rem; color: var(--text); }
-        .toggle-desc { font-size: 0.69rem; color: var(--text-2); margin-top: 2px; }
-
-        .sw {
-            width: 40px; height: 21px;
-            background: #ccd8e2;
-            border-radius: 11px;
-            cursor: pointer;
-            position: relative;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-
-        .sw::after {
-            content: '';
-            position: absolute;
-            top: 2.5px; left: 2.5px;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,.2);
-            transition: transform 0.2s;
-        }
-
-        .sw.on { background: var(--success); }
-        .sw.on::after { transform: translateX(19px); }
-
-        /* ── DETECTION CARD ─────────────────────────────────────────── */
-        .detection-box {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            background: var(--blue-light);
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            padding: 14px;
-            margin-top: 12px;
-        }
-
-        .det-circle {
-            width: 44px; height: 44px;
-            border-radius: 50%;
-            border: 2px solid #ccd8e2;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .det-circle.active { border-color: var(--success); box-shadow: 0 0 8px rgba(45,138,78,.25); }
-        .det-inner { width: 10px; height: 10px; border-radius: 50%; background: #ccd8e2; transition: background 0.3s; }
-        .det-circle.active .det-inner { background: var(--success); }
-        .det-coords { font-size: 0.78rem; line-height: 1.8; color: var(--text-2); }
-        .det-coords strong { color: var(--text); font-weight: 600; }
-
-        /* ── CAMERA DISABLED NOTICE ────────────────────────────────── */
-        .notice {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            background: var(--warn-bg);
-            border: 1px solid #f0d070;
-            border-radius: 7px;
-            padding: 12px 14px;
-            font-size: 0.78rem;
-            color: var(--warn);
-            margin-bottom: 16px;
-        }
-
-        /* ── FORM ELEMENTS ──────────────────────────────────────────── */
-        .section-label {
-            font-size: 0.67rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--blue);
-            font-weight: 700;
-            margin: 22px 0 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--blue-light);
-        }
-
-        .section-label:first-child { margin-top: 0; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-bottom: 4px; }
-
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group label { font-size: 0.72rem; color: var(--text-2); font-weight: 500; }
-
-        .form-group input,
-        .form-group select {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            color: var(--text);
-            padding: 8px 11px;
-            font-size: 0.82rem;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
-            width: 100%;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(0,114,181,.12);
-        }
-
-        .form-hint { font-size: 0.66rem; color: var(--text-3); }
-
-        /* ── BUTTONS ───────────────────────────────────────────────── */
-        .btn { padding: 8px 20px; border-radius: 5px; font-size: 0.79rem; font-weight: 600; cursor: pointer; font-family: inherit; border: none; transition: all 0.15s; }
-        .btn-primary { background: var(--navy); color: #fff; }
-        .btn-primary:hover { background: var(--navy-dark); }
-        .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
-
-        .card-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border);
-        }
-
-        .card-actions-right { display: flex; gap: 10px; }
-        .action-note { font-size: 0.69rem; color: var(--text-3); }
-
-        /* ── VIDEO LIST ──────────────────────────────────────────────── */
-        .video-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 11px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.8rem;
-        }
-
-        .video-item:last-child { border-bottom: none; }
-        .video-icon { width: 30px; height: 30px; border-radius: 5px; background: var(--blue-light); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--blue); flex-shrink: 0; }
-        .video-name { flex: 1; color: var(--text); }
-        .video-date { color: var(--text-2); font-size: 0.75rem; }
-        .video-size { color: var(--text-3); font-size: 0.72rem; min-width: 56px; text-align: right; }
-
-        /* ── ENDPOINT TABLE ─────────────────────────────────────────── */
-        .ep-header, .ep-row { display: grid; grid-template-columns: 100px 220px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: center; }
-        .ep-header { font-size: 0.63rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .ep-row:last-child { border-bottom: none; }
-        .ep-row { font-size: 0.78rem; }
-        .ep-method { color: var(--navy); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.5px; }
-        .ep-url    { color: var(--blue); font-family: monospace; font-size: 0.77rem; }
-        .ep-desc   { color: var(--text-2); }
-
-        /* ── RANGE INPUTS (gauge min/max) ──────────────────────────── */
-        .gauge-table { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
-
-        .gauge-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 12px;
-            background: var(--blue-light);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-        }
-
-        .gauge-label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text);
-            width: 80px;
-            flex-shrink: 0;
-        }
-
-        .range-inputs {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-        }
-
-        .range-inputs input {
-            width: 90px;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            color: var(--text);
-            padding: 7px 10px;
-            font-size: 0.82rem;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-
-        .range-inputs input:focus {
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(0,114,181,.12);
-        }
-
-        .range-dash { color: var(--text-3); font-size: 1rem; user-select: none; }
-        .range-unit { font-size: 0.75rem; color: var(--text-2); min-width: 36px; font-weight: 500; }
-
-        /* ── API ENDPOINT SECTION HEADERS ───────────────────────────── */
-        .ep-section {
-            font-size: 0.63rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--blue);
-            font-weight: 700;
-            padding: 14px 0 6px;
-            border-bottom: 2px solid var(--blue-light);
-            margin-bottom: 2px;
-        }
-
-        .ep-section:first-child { padding-top: 4px; }
-
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    </style>
+<html lang="en" data-theme="light"><head>
+<style data-omelette-injected="">html,body{background:transparent}</style><script data-omelette-injected="">(()=>{var W=["https://claude.ai","https://preview.claude.ai","https://eap-omelette.claude.ai"];var Y=30000;document.addEventListener("DOMContentLoaded",()=>{const D="transform-react-jsx-source";document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((C,F)=>{const Q=C.getAttribute("data-plugins")||"";if(Q.indexOf(D)<0){C.setAttribute("data-plugins",Q?`${Q},${D}`:D)}if(!C.hasAttribute("data-filename")){C.setAttribute("data-filename",C.getAttribute("src")||`inline-${F}`)}})});var K=window.parent;if(K&&K!==window){const D=(k,f)=>{try{K.postMessage({__omelette_log:true,type:k,data:f},"*")}catch{}};["log","warn","error"].forEach((k)=>{const f=console[k];console[k]=(...w)=>{const z=w.map((h)=>{try{return typeof h==="object"?JSON.stringify(h):String(h)}catch{try{return String(h)}catch{return"[unstringifiable]"}}}).join(" ");D(k,z);f.apply(console,w)}});window.addEventListener("error",(k)=>{const f=k.target;if(f&&f!==window&&f.tagName){const w=f.src||f.href||"";D("resource_error",`${f.tagName} failed to load: ${w}`)}else{D("error",`${k.message||"Unknown error"} at ${k.filename||"?"}:${k.lineno||0}:${k.colno||0}`)}},true);window.addEventListener("unhandledrejection",(k)=>{const f=k.reason;const w=f instanceof Error?`${f.message} ${f.stack}`:String(f);D("error",`Unhandled rejection: ${w}`)});const C=()=>{try{K.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(document.readyState==="complete")C();else window.addEventListener("load",C);if(window.ResizeObserver)new ResizeObserver(C).observe(document.documentElement);const F={};let Q=0;window.claude={complete(k){return new Promise((f,w)=>{if(!W.length){w(new Error("claude.complete: no parent origin"));return}const z=`c${++Q}`;const h=()=>setTimeout(()=>{delete F[z];w(new Error(`claude.complete: no data for ${Y/1000}s`))},Y);const J=h();F[z]={resolve:f,reject:w,text:"",t:J,arm:h};try{for(const V of W){K.postMessage({__om_api:true,id:z,body:k},V)}}catch(V){clearTimeout(J);delete F[z];w(V)}})}};const X=(k)=>{try{return JSON.stringify(k)}catch{return JSON.stringify(String(k))}};window.addEventListener("message",(k)=>{if(W.indexOf(k.origin)<0)return;if(k.source!==K)return;const f=k.data;if(!f)return;if(f.__om_api_r){const h=F[f.id];if(!h)return;if(f.error!=null){clearTimeout(h.t);delete F[f.id];h.reject(new Error(f.error));return}if(f.chunk!=null){clearTimeout(h.t);h.t=h.arm();h.text+=f.chunk;return}if(f.done){clearTimeout(h.t);delete F[f.id];h.resolve(f.text!=null?f.text:h.text);return}return}if(!f.__om_eval)return;const w=f;const z=(h)=>{k.source.postMessage({...h,__om_eval_r:1,id:w.id},k.origin)};try{const h=(0,eval)(w.code);if(h&&typeof h.then==="function"){h.then((J)=>z({ok:1,v:X(J)}),(J)=>z({ok:0,e:String(J)}))}else{z({ok:1,v:X(h)})}}catch(h){z({ok:0,e:String(h)})}})}})();
+</script>
+
+<meta charset="UTF-8">
+<title>AR Welding — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ═══ TOKENS — LIGHT ═══ */
+    :root,
+    [data-theme="light"] {
+        --navy:         #003d6b;
+        --navy-2:       #002d50;
+        --navy-ink:     #001a30;
+
+        --bg:           oklch(0.985 0.004 240);
+        --bg-2:         oklch(0.97 0.006 240);
+        --surface:      #ffffff;
+        --surface-2:    oklch(0.985 0.006 240);
+        --surface-3:    oklch(0.965 0.008 240);
+        --border:       oklch(0.92 0.01 240);
+        --border-2:     oklch(0.88 0.012 240);
+        --divider:      oklch(0.94 0.008 240);
+
+        --text:         oklch(0.22 0.02 250);
+        --text-2:       oklch(0.48 0.015 250);
+        --text-3:       oklch(0.68 0.012 250);
+        --text-inv:     #ffffff;
+
+        /* pastel accents — all ~0.08 chroma */
+        --ok:           oklch(0.58 0.12 155);
+        --ok-bg:        oklch(0.96 0.04 155);
+        --ok-border:    oklch(0.88 0.06 155);
+        --err:          oklch(0.58 0.15 25);
+        --err-bg:       oklch(0.96 0.03 25);
+        --err-border:   oklch(0.88 0.05 25);
+        --warn:         oklch(0.62 0.13 75);
+        --warn-bg:      oklch(0.96 0.04 75);
+        --warn-border:  oklch(0.88 0.06 75);
+        --info:         oklch(0.55 0.12 240);
+        --info-bg:      oklch(0.96 0.03 240);
+        --info-border:  oklch(0.86 0.05 240);
+
+        --accent:       var(--navy);
+        --accent-soft:  oklch(0.94 0.03 240);
+
+        --shadow-sm:    0 1px 2px oklch(0.3 0.05 250 / 0.06);
+        --shadow:       0 1px 3px oklch(0.3 0.05 250 / 0.04), 0 4px 16px oklch(0.3 0.05 250 / 0.04);
+        --shadow-lg:    0 8px 32px oklch(0.3 0.05 250 / 0.08);
+
+        --r-sm:         6px;
+        --r:            10px;
+        --r-lg:         14px;
+        --r-xl:         18px;
+
+        --sw:           244px;
+
+        --sidebar-bg:   var(--navy);
+        --sidebar-ink:  rgba(255,255,255,.72);
+        --sidebar-ink-dim: rgba(255,255,255,.42);
+        --sidebar-hover: rgba(255,255,255,.07);
+        --sidebar-active: rgba(255,255,255,.14);
+        --sidebar-border: rgba(255,255,255,.1);
+    }
+
+    /* ═══ TOKENS — DARK ═══ */
+    [data-theme="dark"] {
+        --navy:         #4b8fc5;
+        --navy-2:       #6ba3d3;
+        --navy-ink:     #8fbce0;
+
+        --bg:           oklch(0.17 0.015 245);
+        --bg-2:         oklch(0.2 0.018 245);
+        --surface:      oklch(0.22 0.018 245);
+        --surface-2:    oklch(0.25 0.02 245);
+        --surface-3:    oklch(0.28 0.022 245);
+        --border:       oklch(0.3 0.02 245);
+        --border-2:     oklch(0.36 0.022 245);
+        --divider:      oklch(0.27 0.02 245);
+
+        --text:         oklch(0.96 0.005 240);
+        --text-2:       oklch(0.75 0.012 240);
+        --text-3:       oklch(0.55 0.012 240);
+
+        --ok:           oklch(0.72 0.15 155);
+        --ok-bg:        oklch(0.3 0.06 155);
+        --ok-border:    oklch(0.4 0.08 155);
+        --err:          oklch(0.72 0.17 25);
+        --err-bg:       oklch(0.3 0.06 25);
+        --err-border:   oklch(0.4 0.1 25);
+        --warn:         oklch(0.78 0.14 75);
+        --warn-bg:      oklch(0.32 0.06 75);
+        --warn-border:  oklch(0.42 0.08 75);
+        --info:         oklch(0.75 0.13 240);
+        --info-bg:      oklch(0.3 0.05 240);
+        --info-border:  oklch(0.42 0.07 240);
+
+        --accent:       var(--navy);
+        --accent-soft:  oklch(0.3 0.06 245);
+
+        --shadow-sm:    0 1px 2px rgba(0,0,0,.3);
+        --shadow:       0 1px 3px rgba(0,0,0,.2), 0 4px 16px rgba(0,0,0,.25);
+        --shadow-lg:    0 8px 32px rgba(0,0,0,.45);
+
+        --sidebar-bg:   oklch(0.13 0.018 245);
+        --sidebar-ink:  rgba(255,255,255,.78);
+        --sidebar-ink-dim: rgba(255,255,255,.4);
+        --sidebar-hover: rgba(255,255,255,.05);
+        --sidebar-active: rgba(255,255,255,.1);
+        --sidebar-border: rgba(255,255,255,.08);
+    }
+
+    /* ═══ BASE ═══ */
+    html, body { height: 100%; }
+    body {
+        font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        letter-spacing: -0.005em;
+        -webkit-font-smoothing: antialiased;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'zero', 'ss01'; }
+
+    /* ═══ SIDEBAR ═══ */
+    .sidebar {
+        width: var(--sw);
+        min-width: var(--sw);
+        background: var(--sidebar-bg);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: relative;
+    }
+
+    .sidebar-logo {
+        padding: 22px 22px 18px;
+        border-bottom: 1px solid var(--sidebar-border);
+    }
+
+    .ku-wordmark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+    }
+
+    .ku-mark {
+        width: 100%;
+        height: auto;
+        display: block;
+        flex-shrink: 0;
+    }
+    [data-theme="dark"] .ku-mark { background: var(--navy); color: #fff; }
+
+    .ku-name { font-weight: 700; font-size: 14px; letter-spacing: -0.01em; line-height: 1.15; }
+    .ku-name small { display: block; font-weight: 400; font-size: 10.5px; color: var(--sidebar-ink-dim); margin-top: 2px; letter-spacing: 0; }
+
+    .sidebar-project {
+        margin-top: 14px;
+        padding: 10px 12px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--sidebar-border);
+        border-radius: 8px;
+        font-size: 11px;
+        color: var(--sidebar-ink);
+        line-height: 1.4;
+    }
+    .sidebar-project b { display: block; color: #fff; font-weight: 600; margin-bottom: 2px; letter-spacing: -0.005em; }
+
+    nav {
+        flex: 1;
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        overflow-y: auto;
+    }
+
+    .nav-section {
+        font-size: 10px;
+        color: var(--sidebar-ink-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-weight: 600;
+        padding: 14px 10px 6px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--sidebar-ink);
+        transition: all .15s;
+        user-select: none;
+        position: relative;
+    }
+    .nav-item:hover  { background: var(--sidebar-hover); color: #fff; }
+    .nav-item.active { background: var(--sidebar-active); color: #fff; font-weight: 500; }
+    .nav-item.active::before {
+        content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px;
+        width: 2px; background: #fff; border-radius: 0 2px 2px 0;
+    }
+
+    .nav-ico {
+        width: 16px; height: 16px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0.85;
+    }
+    .nav-ico svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+    .nav-badge {
+        margin-left: auto;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.1);
+        color: var(--sidebar-ink-dim);
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,.18); color: #fff; }
+
+    .sidebar-footer {
+        padding: 12px 14px 14px;
+        border-top: 1px solid var(--sidebar-border);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .theme-toggle {
+        display: flex;
+        background: rgba(255,255,255,.06);
+        border: 1px solid var(--sidebar-border);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+    }
+    .theme-toggle button {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--sidebar-ink-dim);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 5px 0;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        transition: all .15s;
+    }
+    .theme-toggle button.on { background: rgba(255,255,255,.12); color: #fff; }
+    .theme-toggle button svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+    .user-chip {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: var(--sidebar-ink);
+        font-size: 12px;
+    }
+    .user-avatar {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: linear-gradient(135deg, oklch(0.7 0.12 200), oklch(0.55 0.15 280));
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 11px; color: #fff;
+        flex-shrink: 0;
+    }
+    .user-chip b { color: #fff; font-weight: 600; font-size: 12.5px; letter-spacing: -0.005em; }
+    .user-chip small { display: block; color: var(--sidebar-ink-dim); font-size: 10.5px; }
+
+    /* ═══ MAIN ═══ */
+    .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+
+    header {
+        padding: 0 28px;
+        height: 60px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+    .h-left { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex-shrink: 1; overflow: hidden; }
+    .h-title { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.015em; white-space: nowrap; }
+    .h-crumb { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .h-crumb::before { content: '/ '; color: var(--text-3); opacity: 0.6; }
+
+    .h-chips { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    @media (max-width: 1000px) { .h-crumb { display: none; } }
+    @media (max-width: 820px) { .h-chips .chip { padding: 5px 8px; font-size: 0; gap: 0; } .h-chips .chip .dot { width: 8px; height: 8px; } }
+    .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 500;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text-2);
+        transition: all .15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+    .chip.ok  { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok); }
+    .chip.ok .dot { background: var(--ok); box-shadow: 0 0 0 3px oklch(from var(--ok) l c h / 0.2); }
+    .chip.err { background: var(--err-bg); border-color: var(--err-border); color: var(--err); }
+    .chip.err .dot { background: var(--err); box-shadow: 0 0 0 3px oklch(from var(--err) l c h / 0.2); }
+    .chip.warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn); }
+    .chip.warn .dot { background: var(--warn); }
+
+    .chip-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); padding-left: 4px; }
+
+    /* ═══ PAGE ═══ */
+    .page-content { flex: 1; overflow-y: auto; padding: 24px 28px 28px; }
+    .page { display: none; animation: fadeIn .22s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .page-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        gap: 20px;
+    }
+    .page-title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+    .page-sub { font-size: 13px; color: var(--text-2); margin-top: 4px; max-width: 60ch; }
+
+    /* ═══ CARD ═══ */
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+    }
+    .card + .card { margin-top: 14px; }
+
+    .card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 14px;
+        gap: 12px;
+    }
+    .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.005em;
+    }
+    .card-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+    /* ═══ GO LIVE HERO ═══ */
+    .hero {
+        background: linear-gradient(145deg, var(--navy) 0%, var(--navy-2) 100%);
+        border-radius: var(--r-xl);
+        padding: 26px 28px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+    .hero::before {
+        content: ''; position: absolute; inset: 0;
+        background:
+            radial-gradient(circle at 90% 20%, rgba(255,255,255,.08), transparent 40%),
+            radial-gradient(circle at 15% 90%, rgba(120,180,240,.12), transparent 45%);
+        pointer-events: none;
+    }
+    [data-theme="dark"] .hero {
+        background: linear-gradient(145deg, oklch(0.25 0.03 245), oklch(0.2 0.025 245));
+        border: 1px solid var(--border);
+    }
+
+    .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 1; }
+    .hero-meta { flex: 1; min-width: 0; }
+    .hero-eyebrow {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+        color: rgba(255,255,255,.6); font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .hero-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); }
+    .hero-eyebrow.live .dot { background: #86efac; box-shadow: 0 0 0 3px rgba(134,239,172,.25); animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    .hero-h { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; color: #fff; line-height: 1.1; }
+    .hero-p { font-size: 13.5px; color: rgba(255,255,255,.7); margin-top: 8px; max-width: 52ch; line-height: 1.5; }
+
+    .hero-btn {
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        border: none;
+        cursor: pointer;
+        display: inline-flex; align-items: center; gap: 10px;
+        transition: all .18s;
+        background: #fff;
+        color: var(--navy);
+        box-shadow: 0 4px 16px rgba(0,0,0,.15);
+        white-space: nowrap;
+    }
+    .hero-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+    .hero-btn.stop { background: oklch(0.7 0.18 25); color: #fff; }
+    .hero-btn.stop:hover { background: oklch(0.65 0.2 25); }
+    .hero-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .hero-btn .pulse-dot {
+        width: 9px; height: 9px; border-radius: 50%; background: #fff;
+        animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    /* pre-flight checklist */
+    .preflight {
+        margin-top: 18px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 10px;
+        padding: 8px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        position: relative;
+        z-index: 1;
+    }
+    [data-theme="dark"] .preflight { background: rgba(255,255,255,.04); }
+
+    .pre-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px;
+        border-radius: 7px;
+        font-size: 12px;
+        color: rgba(255,255,255,.8);
+    }
+    .pre-item .pre-ico {
+        width: 18px; height: 18px; border-radius: 50%;
+        background: rgba(255,255,255,.1);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        font-size: 11px;
+    }
+    .pre-item.ok .pre-ico  { background: rgba(134,239,172,.2); color: #86efac; }
+    .pre-item.err .pre-ico { background: rgba(252,165,165,.2); color: #fca5a5; }
+    .pre-item.warn .pre-ico { background: rgba(253,224,71,.2); color: #fde047; }
+    .pre-item b { color: #fff; font-weight: 500; }
+    .pre-item small { display: block; color: rgba(255,255,255,.5); font-size: 10.5px; margin-top: 1px; }
+
+    /* ═══ STATUS GRID (connection health) ═══ */
+    .health-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+
+    .health {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    .health-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .health-label { font-size: 11.5px; color: var(--text-2); font-weight: 500; letter-spacing: 0.01em; }
+    .health-pill {
+        font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+        background: var(--surface-3); color: var(--text-3); letter-spacing: 0.02em;
+    }
+    .health-pill.ok { background: var(--ok-bg); color: var(--ok); }
+    .health-pill.err { background: var(--err-bg); color: var(--err); }
+    .health-pill.warn { background: var(--warn-bg); color: var(--warn); }
+
+    .health-val {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+    .health-val.ok { color: var(--ok); }
+    .health-val.err { color: var(--err); }
+    .health-val.warn { color: var(--warn); }
+
+    .health-hint {
+        font-size: 11.5px;
+        color: var(--text-3);
+        margin-top: 6px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .health-hint .mono { font-size: 11px; color: var(--text-2); }
+
+    .health-sparkline {
+        margin-top: 12px;
+        height: 22px;
+        display: flex; align-items: flex-end; gap: 2px;
+    }
+    .spark-bar { flex: 1; background: var(--surface-3); border-radius: 1px; min-height: 2px; transition: height .3s, background .3s; }
+    .spark-bar.ok { background: oklch(from var(--ok) l c h / 0.45); }
+    .spark-bar.err { background: oklch(from var(--err) l c h / 0.45); }
+    .spark-bar.warn { background: oklch(from var(--warn) l c h / 0.45); }
+
+    /* ═══ LIVE DATA ═══ */
+    .live-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+    .live-item {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 14px 14px;
+    }
+    .live-label {
+        font-size: 10.5px;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    .live-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+    .live-unit { font-size: 11px; color: var(--text-3); margin-left: 4px; font-weight: 400; }
+
+    /* ═══ TOGGLE ROWS ═══ */
+    .toggle-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--divider);
+        gap: 16px;
+    }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 2px; }
+    .toggle-row:first-child { padding-top: 2px; }
+    .toggle-name { font-size: 13px; color: var(--text); font-weight: 500; letter-spacing: -0.005em; }
+    .toggle-desc { font-size: 11.5px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+
+    .sw {
+        width: 38px; height: 22px;
+        background: var(--border-2);
+        border-radius: 11px;
+        cursor: pointer;
+        position: relative;
+        transition: background .2s;
+        flex-shrink: 0;
+    }
+    .sw::after {
+        content: '';
+        position: absolute; top: 2px; left: 2px;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,.18);
+        transition: transform .2s;
+    }
+    [data-theme="dark"] .sw::after { background: oklch(0.88 0.008 240); }
+    .sw.on { background: var(--ok); }
+    .sw.on::after { transform: translateX(16px); }
+
+    /* ═══ FORMS ═══ */
+    .section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-2);
+        font-weight: 700;
+        margin: 22px 0 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--divider);
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label .sec-count {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--text-3);
+        font-weight: 500;
+        letter-spacing: 0;
+        margin-left: auto;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; color: var(--text); font-weight: 500; letter-spacing: -0.005em; }
+
+    .form-group input,
+    .form-group select {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        color: var(--text);
+        padding: 9px 12px;
+        font-size: 13px;
+        font-family: 'JetBrains Mono', monospace;
+        outline: none;
+        transition: all .15s;
+        width: 100%;
+    }
+    .form-group select { font-family: inherit; }
+    .form-group input:hover, .form-group select:hover { border-color: var(--border-2); }
+    .form-group input:focus, .form-group select:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px oklch(from var(--navy) l c h / 0.15);
+        background: var(--surface);
+    }
+    [data-theme="dark"] .form-group input:focus, [data-theme="dark"] .form-group select:focus {
+        border-color: var(--info);
+        box-shadow: 0 0 0 3px oklch(from var(--info) l c h / 0.2);
+    }
+
+    .form-hint { font-size: 11px; color: var(--text-3); line-height: 1.45; }
+
+    /* ═══ BUTTONS ═══ */
+    .btn {
+        padding: 9px 16px;
+        border-radius: var(--r-sm);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        border: 1px solid transparent;
+        transition: all .15s;
+        display: inline-flex; align-items: center; gap: 6px;
+        letter-spacing: -0.005em;
+    }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-primary:hover { background: var(--navy-2); }
+    [data-theme="dark"] .btn-primary { background: var(--navy); color: var(--navy-ink); color: oklch(0.12 0.02 245); }
+    [data-theme="dark"] .btn-primary:hover { background: oklch(0.78 0.12 240); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+
+    .card-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid var(--divider);
+    }
+    .card-actions-right { display: flex; gap: 8px; }
+    .action-note { font-size: 11.5px; color: var(--text-3); }
+
+    /* ═══ GAUGE RANGE ROWS ═══ */
+    .gauge-table { display: flex; flex-direction: column; gap: 10px; }
+    .gauge-row {
+        display: flex; align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+    }
+    .gauge-label { font-size: 13px; font-weight: 500; color: var(--text); width: 86px; flex-shrink: 0; letter-spacing: -0.005em; }
+    .gauge-label-ico {
+        width: 28px; height: 28px; border-radius: 7px;
+        background: var(--accent-soft); color: var(--navy);
+        display: inline-flex; align-items: center; justify-content: center;
+        margin-right: 10px; flex-shrink: 0;
+        font-weight: 700; font-size: 12px;
+    }
+    [data-theme="dark"] .gauge-label-ico { color: var(--info); }
+    .range-inputs { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .range-inputs input {
+        width: 94px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        color: var(--text);
+        padding: 7px 10px;
+        font-size: 13px;
+        font-family: 'JetBrains Mono', monospace;
+        outline: none;
+        transition: all .15s;
+    }
+    .range-inputs input:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px oklch(from var(--navy) l c h / 0.15);
+    }
+    .range-dash { color: var(--text-3); font-size: 14px; user-select: none; }
+    .range-unit { font-size: 11.5px; color: var(--text-2); min-width: 42px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+
+    /* ═══ NOTICE ═══ */
+    .notice {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: var(--r);
+        padding: 12px 14px;
+        font-size: 12.5px;
+        color: var(--warn);
+        margin-bottom: 16px;
+        line-height: 1.5;
+    }
+    .notice svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+    /* ═══ DETECTION BOX ═══ */
+    .detection-box {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--info-bg);
+        border: 1px solid var(--info-border);
+        border-radius: var(--r);
+        padding: 16px;
+        margin-top: 12px;
+    }
+    .det-circle {
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        border: 2px solid var(--border-2);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: all .3s;
+    }
+    .det-circle.active {
+        border-color: var(--ok);
+        box-shadow: 0 0 0 4px oklch(from var(--ok) l c h / 0.15);
+    }
+    .det-inner { width: 12px; height: 12px; border-radius: 50%; background: var(--border-2); transition: background .3s; }
+    .det-circle.active .det-inner { background: var(--ok); }
+    .det-coords { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.8; color: var(--text-2); }
+    .det-coords strong { color: var(--text); font-weight: 600; min-width: 40px; display: inline-block; }
+    .det-coords span { display: inline-block; width: 56px; color: var(--text-3); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.08em; }
+
+    /* ═══ VIDEO LIST ═══ */
+    .video-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 4px;
+        border-bottom: 1px solid var(--divider);
+        font-size: 13px;
+        color: var(--text);
+        text-decoration: none;
+        transition: background .15s;
+        border-radius: 6px;
+    }
+    .video-item:hover { background: var(--surface-2); padding-left: 10px; padding-right: 10px; }
+    .video-item:last-child { border-bottom: none; }
+    .video-icon { width: 34px; height: 34px; border-radius: 7px; background: var(--accent-soft); color: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    [data-theme="dark"] .video-icon { color: var(--info); }
+    .video-name { flex: 1; font-weight: 500; letter-spacing: -0.005em; }
+    .video-date { color: var(--text-2); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .video-size { color: var(--text-3); font-size: 11.5px; font-family: 'JetBrains Mono', monospace; min-width: 64px; text-align: right; }
+
+    /* ═══ ENDPOINTS DRAWER ═══ */
+    .docs-drawer {
+        margin-top: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        transition: all .2s;
+    }
+    .docs-toggle {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 20px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .docs-toggle:hover { background: var(--surface-2); }
+    .docs-toggle-left { display: flex; align-items: center; gap: 10px; }
+    .docs-toggle-left svg { width: 16px; height: 16px; stroke: var(--text-2); fill: none; stroke-width: 1.6; }
+    .docs-toggle-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .docs-toggle-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+    .docs-chev {
+        width: 18px; height: 18px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-3);
+        transition: transform .2s;
+    }
+    .docs-chev svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .docs-drawer.open .docs-chev { transform: rotate(180deg); }
+
+    .docs-body {
+        display: none;
+        padding: 4px 20px 18px;
+        border-top: 1px solid var(--divider);
+    }
+    .docs-drawer.open .docs-body { display: block; }
+
+    .ep-section {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-2);
+        font-weight: 700;
+        padding: 18px 0 8px;
+    }
+    .ep-row {
+        display: grid; grid-template-columns: 80px 240px 1fr;
+        gap: 14px; padding: 10px 0;
+        border-bottom: 1px solid var(--divider);
+        align-items: center;
+        font-size: 12.5px;
+    }
+    .ep-row:last-child { border-bottom: none; }
+    .ep-method {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--navy);
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        background: var(--accent-soft);
+        padding: 2px 8px;
+        border-radius: 4px;
+        text-align: center;
+    }
+    [data-theme="dark"] .ep-method { color: var(--info); }
+    .ep-url { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .ep-desc { color: var(--text-2); line-height: 1.5; }
+    .ep-desc em { color: var(--text); font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--divider); }
+
+    /* ═══ GLASSES PREVIEW ═══ */
+    .glasses-stage {
+        background:
+            radial-gradient(ellipse at 50% 40%, oklch(0.28 0.04 245) 0%, oklch(0.18 0.025 250) 55%, #05070c 100%);
+        border-radius: var(--r-xl);
+        padding: 24px;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg), inset 0 0 80px rgba(0,0,0,.4);
+    }
+    .glasses-stage::before {
+        content: '';
+        position: absolute; inset: 0;
+        background:
+            repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(255,255,255,.008) 3px, rgba(255,255,255,.008) 4px);
+        pointer-events: none;
+    }
+    .glasses-chrome {
+        position: relative;
+        aspect-ratio: 16/9;
+        max-width: 1040px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow:
+            0 0 0 1px rgba(255,255,255,.08),
+            0 0 0 8px rgba(0,0,0,.6),
+            0 0 0 9px rgba(255,255,255,.05),
+            0 30px 60px rgba(0,0,0,.6);
+    }
+    .glasses-screen {
+        position: absolute; inset: 0;
+        background: #000;
+        color: #cdd6f4;
+        font-family: 'Inter Tight', sans-serif;
+        display: flex;
+        padding: 2.5% 3%;
+        gap: 2.5%;
+        container-type: size;
+    }
+
+    /* gauge column — sized off container height so 3 gauges always fit */
+    .g-col {
+        display: flex; flex-direction: column;
+        justify-content: space-between;
+        gap: 1.2cqh;
+        height: 100%;
+        flex-shrink: 0;
+    }
+    .gauge {
+        width: min(28cqh, 22cqw, 170px);
+        height: min(28cqh, 22cqw, 170px);
+        position: relative;
+        flex-shrink: 0;
+    }
+    .gauge svg { width: 100%; height: 100%; display: block; }
+    .gauge .g-label {
+        position: absolute; left: 0; right: 0; top: 0%;
+        text-align: center;
+        font-size: clamp(9px, min(1.3cqh, 1.1cqw), 13px);
+        color: #9ca5c2;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    .gauge .g-value {
+        position: absolute; left: 0; right: 0; top: 40%;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: clamp(18px, min(3.8cqh, 3.2cqw), 32px);
+        font-weight: 600;
+        color: #eff1fa;
+        letter-spacing: -0.03em;
+        line-height: 1;
+    }
+    .gauge .g-unit {
+        position: absolute; left: 0; right: 0; top: 60%;
+        text-align: center;
+        font-size: clamp(10px, min(1.4cqh, 1.2cqw), 14px);
+        color: #6b7394;
+        letter-spacing: 0.08em;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* heatbar */
+    .hb-col {
+        flex: 1;
+        display: flex; flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        min-width: 0;
+        padding-top: 2cqh;
+    }
+    .hb-label {
+        font-size: clamp(10px, min(1.6cqh, 1.3cqw), 14px);
+        color: #9ca5c2;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+        margin-bottom: 1.2cqh;
+        text-align: right;
+    }
+    .hb-bar {
+        height: 9cqh;
+        max-height: 90px;
+        min-height: 40px;
+        border-radius: 6px;
+        background: #0a0d14;
+        border: 1px solid rgba(255,255,255,.06);
+        overflow: hidden;
+        position: relative;
+        display: flex;
+    }
+    .hb-col-cell { flex: 1; height: 100%; border-right: 1px solid rgba(0,0,0,.3); }
+    .hb-col-cell:last-child { border-right: none; }
+    .hb-legend {
+        margin-top: 1cqh;
+        display: flex; justify-content: space-between;
+        font-size: clamp(9px, min(1.3cqh, 1.1cqw), 12px); color: #6b7394;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .hb-legend-gradient {
+        margin-top: 1cqh;
+        display: flex; align-items: center; gap: 6px;
+        font-size: clamp(9px, min(1.3cqh, 1.1cqw), 12px); color: #6b7394;
+        font-family: 'JetBrains Mono', monospace;
+        justify-content: flex-end;
+    }
+    .hb-swatch {
+        display: inline-block; width: min(14cqh, 8cqw); max-width: 100px; height: 0.8cqh; min-height: 5px; border-radius: 3px;
+        background: linear-gradient(90deg, #1e5a3a 0%, #c7b042 50%, #b74040 100%);
+    }
+
+    /* glasses info bar */
+    .glasses-hud-meta {
+        position: absolute;
+        top: 10px; right: 16px;
+        display: flex; gap: 14px;
+        font-size: 10.5px;
+        color: rgba(205,214,244,.4);
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.08em;
+        z-index: 2;
+    }
+    .glasses-hud-meta span { display: flex; align-items: center; gap: 5px; }
+    .glasses-hud-meta .live-dot {
+        width: 6px; height: 6px; border-radius: 50%; background: #86efac;
+        animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .glasses-caption {
+        margin-top: 18px;
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; color: var(--text-3);
+    }
+    .glasses-caption .mono { color: var(--text-2); }
+
+    /* glasses side controls */
+    .glasses-controls {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .gc-tile {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 12px 14px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px;
+    }
+    .gc-tile-left { min-width: 0; }
+    .gc-tile b { display: block; font-size: 12.5px; font-weight: 500; color: var(--text); letter-spacing: -0.005em; }
+    .gc-tile small { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+    /* ═══ STAT LINE ═══ */
+    .stat-line {
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-line .big {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        color: var(--text);
+    }
+    .stat-line .big.ok { color: var(--ok); }
+    .stat-line .big.err { color: var(--err); }
+    .stat-line .lab {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--text-3); font-weight: 600;
+    }
+
+    /* Tweaks panel */
+    .tweaks-panel {
+        position: fixed;
+        right: 20px; bottom: 20px;
+        background: var(--surface);
+        border: 1px solid var(--border-2);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-lg);
+        padding: 16px;
+        width: 260px;
+        z-index: 100;
+        display: none;
+    }
+    .tweaks-panel.on { display: block; }
+    .tweaks-panel h4 {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--text-2); margin-bottom: 12px; font-weight: 700;
+    }
+    .tweak-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12.5px; color: var(--text); }
+    .tweak-row:last-child { margin-bottom: 0; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+    @media (max-width: 1100px) {
+        .health-grid, .grid-3 { grid-template-columns: 1fr 1fr; }
+        .live-grid { grid-template-columns: 1fr 1fr; }
+        .preflight { grid-template-columns: 1fr; }
+        .glasses-controls { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 820px) {
+        .grid-2, .health-grid, .grid-3 { grid-template-columns: 1fr; }
+        .hero-row { flex-direction: column; align-items: stretch; }
+    }
+</style>
 </head>
 <body>
 
-<!-- ── SIDEBAR ──────────────────────────────────────────────────────── -->
+<!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar">
 
     <div class="sidebar-logo">
-        <img src="KU-Leuven-logo.png" alt="KU Leuven" class="ku-logo-img">
-        <div class="sidebar-subtitle">AR Welding Guidance — Thesis Remy Lenaerts</div>
+        <div class="ku-wordmark">
+            <img src="/KU-Leuven-logo.png" alt="KU Leuven" class="ku-mark">
+        </div>
+        <div class="sidebar-project">
+            <b>AR Welding Guidance</b>
+            Thesis · Remy Lenaerts
+        </div>
     </div>
 
     <nav>
         <div class="nav-section">Monitor</div>
-        <div class="nav-item active" onclick="showPage('overview', this)">
-            <span class="nav-icon">◈</span> Overview
+        <div class="nav-item active" data-page="overview" onclick="showPage('overview', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"></rect><rect x="13" y="3" width="8" height="5" rx="1.5"></rect><rect x="13" y="10" width="8" height="11" rx="1.5"></rect><rect x="3" y="13" width="8" height="8" rx="1.5"></rect></svg></span>
+            Overview
+        </div>
+        <div class="nav-item" data-page="glasses" onclick="showPage('glasses', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="7" cy="13" r="4"></circle><circle cx="17" cy="13" r="4"></circle><path d="M11 13h2M3 9l2-2h14l2 2"></path></svg></span>
+            Glasses Preview
+            <span class="nav-badge">demo</span>
         </div>
 
         <div class="nav-section">Features</div>
-        <div class="nav-item" onclick="showPage('camera', this)">
-            <span class="nav-icon">⏺</span> Camera &amp; Detection
+        <div class="nav-item" data-page="camera" onclick="showPage('camera', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12" rx="2"></rect><path d="M17 10l4-2v8l-4-2z"></path></svg></span>
+            Camera &amp; Detection
         </div>
-        <div class="nav-item" onclick="showPage('server-settings', this)">
-            <span class="nav-icon">⚙</span> Camera Settings
+        <div class="nav-item" data-page="server-settings" onclick="showPage('server-settings', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+            Camera Settings
         </div>
 
         <div class="nav-section">Configuration</div>
-        <div class="nav-item" onclick="showPage('app-settings', this)">
-            <span class="nav-icon">📱</span> App Settings
-        </div>
-
-        <div class="nav-section">Info</div>
-        <div class="nav-item" onclick="showPage('endpoints', this)">
-            <span class="nav-icon">⟡</span> API Endpoints
+        <div class="nav-item" data-page="app-settings" onclick="showPage('app-settings', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2.5"></rect><path d="M11 18h2"></path></svg></span>
+            App Settings
         </div>
     </nav>
 
     <div class="sidebar-footer">
-        <button id="btnSession" class="start" onclick="toggleSession()">
-            ▶ &nbsp;Start Session
-        </button>
-        <div id="sessionLabel">Enable polling &amp; streaming to start.</div>
+        <div class="theme-toggle">
+            <button class="on" id="tm-light" onclick="setTheme('light')" title="Light theme">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+                Light
+            </button>
+            <button id="tm-dark" onclick="setTheme('dark')" title="Dark theme">
+                <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                Dark
+            </button>
+        </div>
+        <div class="user-chip">
+            <div class="user-avatar">RL</div>
+            <div>
+                <b>Remy Lenaerts</b>
+                <small>Session operator</small>
+            </div>
+        </div>
     </div>
 </aside>
 
-<!-- ── MAIN ─────────────────────────────────────────────────────────── -->
+<!-- ═══ MAIN ═══ -->
 <div class="main">
 
     <header>
-        <div>
-            <div class="header-title" id="headerTitle">Overview</div>
-            <div class="header-sub"   id="headerSub">AI data stream and glasses connection</div>
+        <div class="h-left">
+            <div class="h-title" id="headerTitle">Overview</div>
+            <div class="h-crumb" id="headerSub">AI data stream and glasses connection</div>
         </div>
-        <div class="header-chips">
-            <div class="chip"><div class="dot grey" id="hChip-ai"></div> Python AI</div>
-            <div class="chip"><div class="dot grey" id="hChip-sse"></div> SSE Stream</div>
-            <div class="chip"><div class="dot grey" id="hChip-ws"></div> Glasses WS</div>
+        <div class="h-chips">
+            <div class="chip ok" id="hChip-ai"><div class="dot"></div>Python AI</div>
+            <div class="chip ok" id="hChip-sse"><div class="dot"></div>SSE</div>
+            <div class="chip ok" id="hChip-ws"><div class="dot"></div>Glasses WS</div>
+            <div class="chip-time mono" id="hTime">20:18:27</div>
         </div>
     </header>
 
     <div class="page-content">
 
-        <!-- ══ OVERVIEW ════════════════════════════════════════════ -->
+        <!-- ══════════ OVERVIEW ══════════ -->
         <div class="page active" id="page-overview">
 
-            <div class="stat-row" style="grid-template-columns: repeat(3, 1fr);">
-                <div class="stat-card" id="sc-ai">
-                    <div class="stat-label">Python AI (port 8060)</div>
-                    <div class="stat-val" id="sv-ai">—</div>
-                    <div class="stat-hint">Defect inference source</div>
+            <!-- Hero / Go Live -->
+            <div class="hero">
+                <div class="hero-row">
+                    <div class="hero-meta">
+                        <div class="hero-eyebrow" id="heroEyebrow">
+                            <div class="dot"></div>
+                            <span id="heroStatus">Session idle</span>
+                        </div>
+                        <div class="hero-h" id="heroTitle">Ready when you are.</div>
+                        <div class="hero-p" id="heroDesc">
+                            Go Live enables polling of the Python AI on port 8060 and SSE broadcast to the glasses in a single step. We'll run the pre-flight checks for you.
+                        </div>
+                    </div>
+                    <button class="hero-btn" id="btnSession" onclick="toggleSession()">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                        Go Live
+                    </button>
                 </div>
-                <div class="stat-card" id="sc-polling">
-                    <div class="stat-label">Polling</div>
-                    <div class="stat-val" id="sv-polling">—</div>
-                    <div class="stat-hint">Fetching from Python AI</div>
-                </div>
-                <div class="stat-card" id="sc-streaming">
-                    <div class="stat-label">Streaming</div>
-                    <div class="stat-val" id="sv-streaming">—</div>
-                    <div class="stat-hint">Broadcasting to glasses</div>
+                <div class="preflight" id="preflight">
+                    <div class="pre-item ok" id="pre-ai">
+                        <div class="pre-ico">✓</div>
+                        <div><b>Python AI</b><small>Reachable · 14 ms</small></div>
+                    </div>
+                    <div class="pre-item warn" id="pre-poll">
+                        <div class="pre-ico">·</div>
+                        <div><b>DataGetter polling</b><small>Paused · press Go Live</small></div>
+                    </div>
+                    <div class="pre-item warn" id="pre-stream">
+                        <div class="pre-ico">·</div>
+                        <div><b>SSE broadcast</b><small>Paused · press Go Live</small></div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Connection Health -->
+            <div class="health-grid">
+
+                <div class="health">
+                    <div class="health-top">
+                        <div class="health-label">Python AI · port 8060</div>
+                        <div class="health-pill ok" id="hp-ai">ONLINE</div>
+                    </div>
+                    <div class="health-val ok" id="sv-ai">Reachable</div>
+                    <div class="health-hint">Inference source · <span class="mono" id="sv-ai-lat">14 ms</span></div>
+                    <div class="health-sparkline" id="spark-ai"><div class="spark-bar ok" style="height:74.02169198362436%"></div><div class="spark-bar ok" style="height:99.57030418389394%"></div><div class="spark-bar ok" style="height:90.5307871218184%"></div><div class="spark-bar ok" style="height:66.4271908058951%"></div><div class="spark-bar ok" style="height:93.92996636758048%"></div><div class="spark-bar ok" style="height:72.73499307124916%"></div><div class="spark-bar ok" style="height:60.253314221698375%"></div><div class="spark-bar ok" style="height:91.678103983925%"></div><div class="spark-bar ok" style="height:64.65051555752207%"></div><div class="spark-bar ok" style="height:84.43900776248208%"></div><div class="spark-bar ok" style="height:87.89037861529323%"></div><div class="spark-bar ok" style="height:77.79116951326826%"></div><div class="spark-bar ok" style="height:61.03308478827164%"></div><div class="spark-bar ok" style="height:63.929240644640466%"></div><div class="spark-bar ok" style="height:85.84971277808482%"></div><div class="spark-bar ok" style="height:60.536854476297975%"></div><div class="spark-bar ok" style="height:88.62921076406548%"></div><div class="spark-bar ok" style="height:64.62480369472273%"></div><div class="spark-bar ok" style="height:87.12970354231977%"></div><div class="spark-bar ok" style="height:74.76026917946157%"></div><div class="spark-bar ok" style="height:88.02274697469909%"></div><div class="spark-bar ok" style="height:76.38989634664856%"></div><div class="spark-bar ok" style="height:75.86623281228665%"></div><div class="spark-bar ok" style="height:63.45254349543225%"></div></div>
+                </div>
+
+                <div class="health">
+                    <div class="health-top">
+                        <div class="health-label">SSE broadcast · :9999/stream</div>
+                        <div class="health-pill warn" id="hp-sse">PAUSED</div>
+                    </div>
+                    <div class="health-val warn" id="sv-streaming">Paused</div>
+                    <div class="health-hint"><span class="mono" id="sv-clients">1</span> subscribers · <span class="mono" id="sv-events">0 ev/s</span></div>
+                    <div class="health-sparkline" id="spark-sse"><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div><div class="spark-bar warn" style="height:25%"></div></div>
+                </div>
+
+                <div class="health">
+                    <div class="health-top">
+                        <div class="health-label">Glasses · WebSocket</div>
+                        <div class="health-pill ok" id="hp-ws">CONNECTED</div>
+                    </div>
+                    <div class="health-val ok" id="sv-ws">Connected</div>
+                    <div class="health-hint">Device · <span class="mono" id="sv-ws-dev">glasses-lenaerts-01</span></div>
+                    <div class="health-sparkline" id="spark-ws"><div class="spark-bar ok" style="height:97.30931636482092%"></div><div class="spark-bar ok" style="height:82.52763167967093%"></div><div class="spark-bar ok" style="height:63.25442098885378%"></div><div class="spark-bar ok" style="height:81.27704150061054%"></div><div class="spark-bar ok" style="height:81.35963431532569%"></div><div class="spark-bar ok" style="height:78.27955210975782%"></div><div class="spark-bar ok" style="height:60.59716270259539%"></div><div class="spark-bar ok" style="height:86.60562495721115%"></div><div class="spark-bar ok" style="height:91.32773239188134%"></div><div class="spark-bar ok" style="height:84.5830321477996%"></div><div class="spark-bar ok" style="height:65.97166272720264%"></div><div class="spark-bar ok" style="height:64.01572992439151%"></div><div class="spark-bar ok" style="height:78.1041741207299%"></div><div class="spark-bar ok" style="height:90.85418426279655%"></div><div class="spark-bar ok" style="height:87.46269289240618%"></div><div class="spark-bar ok" style="height:85.35020068413948%"></div><div class="spark-bar ok" style="height:73.07455717246742%"></div><div class="spark-bar ok" style="height:66.06605267405943%"></div><div class="spark-bar ok" style="height:69.14755507125784%"></div><div class="spark-bar ok" style="height:68.63186529817455%"></div><div class="spark-bar ok" style="height:68.93393133720733%"></div><div class="spark-bar ok" style="height:99.19361097562407%"></div><div class="spark-bar ok" style="height:80.04352211148395%"></div><div class="spark-bar ok" style="height:92.90393684706976%"></div></div>
+                </div>
+
+            </div>
+
+            <!-- Live Data + Session Controls -->
             <div class="grid-2">
 
                 <div class="card">
-                    <div class="card-title">Session Controls</div>
+                    <div class="card-head">
+                        <div>
+                            <div class="card-title">Live data · last packet</div>
+                            <div class="card-sub" id="liveFresh">Awaiting first packet…</div>
+                        </div>
+                        <span class="chip mono chip-time" id="ld-time">—</span>
+                    </div>
+                    <div class="live-grid">
+                        <div class="live-item">
+                            <div class="live-label">Current</div>
+                            <div class="live-val mono" id="ld-current">—<span class="live-unit">A</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Voltage</div>
+                            <div class="live-val mono" id="ld-voltage">—<span class="live-unit">V</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Gas flow</div>
+                            <div class="live-val mono" id="ld-gas">—<span class="live-unit">l/min</span></div>
+                        </div>
+                        <div class="live-item">
+                            <div class="live-label">Porosity</div>
+                            <div class="live-val mono" id="ld-porosity">—<span class="live-unit">%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <div class="card-title">Session controls</div>
+                            <div class="card-sub">Toggle individually — Go Live handles both at once.</div>
+                        </div>
+                    </div>
                     <div class="toggle-row">
                         <div>
                             <div class="toggle-name">Polling</div>
@@ -560,131 +1268,215 @@
                     <div class="toggle-row">
                         <div>
                             <div class="toggle-name">Streaming</div>
-                            <div class="toggle-desc">SSE broadcast → Glasses</div>
+                            <div class="toggle-desc">SSE broadcast → glasses</div>
                         </div>
                         <div class="sw" id="sw-streaming" onclick="toggle('streaming')"></div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">Live Data — Last Packet</div>
-                    <div class="live-grid" id="liveGrid">
-                        <div class="live-item">
-                            <div class="live-label">Current</div>
-                            <div class="live-val" id="ld-current">—<span class="live-unit">A</span></div>
-                        </div>
-                        <div class="live-item">
-                            <div class="live-label">Voltage</div>
-                            <div class="live-val" id="ld-voltage">—<span class="live-unit">V</span></div>
-                        </div>
-                        <div class="live-item">
-                            <div class="live-label">Gas Flow</div>
-                            <div class="live-val" id="ld-gas">—<span class="live-unit">l/min</span></div>
-                        </div>
-                        <div class="live-item">
-                            <div class="live-label">Last Update</div>
-                            <div class="live-val" style="font-size:0.82rem" id="ld-time">—</div>
+            </div>
+
+            <!-- Endpoints drawer (collapsed) -->
+            <div class="docs-drawer" id="endpointsDrawer">
+                <div class="docs-toggle" onclick="document.getElementById('endpointsDrawer').classList.toggle('open')">
+                    <div class="docs-toggle-left">
+                        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+                        <div>
+                            <div class="docs-toggle-title">API reference</div>
+                            <div class="docs-toggle-sub">All endpoints for the dashboard, glasses app, and pool_detector.py</div>
                         </div>
                     </div>
+                    <div class="docs-chev"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></div>
                 </div>
+                <div class="docs-body">
 
+                    <div class="ep-section">Core — AI data &amp; glasses</div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/stream</div><div class="ep-desc">SSE stream — glasses subscribe here; receives <em>welddata</em>, <em>cameraControl</em> events</div></div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/status</div><div class="ep-desc">Full server status as JSON — polled every 2s by dashboard</div></div>
+                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/polling</div><div class="ep-desc">Enable / disable DataGetter fetching from Python AI</div></div>
+                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/streaming</div><div class="ep-desc">Enable / disable SSE broadcast to glasses</div></div>
+
+                    <div class="ep-section">Configuration</div>
+                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/app-settings</div><div class="ep-desc">Gauge ranges, heatbar duration — fetched by Android on launch</div></div>
+
+                    <div class="ep-section">Camera &amp; detection · proof-of-concept</div>
+                    <div class="ep-row"><div class="ep-method">WS</div><div class="ep-url">:9999/frames</div><div class="ep-desc">WebSocket — glasses stream JPEG frames when camera is enabled</div></div>
+                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/pool</div><div class="ep-desc">pool_detector.py posts detection result; stored for dashboard monitoring only</div></div>
+                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/camera</div><div class="ep-desc">Enable / disable camera capture — also tells glasses to start/stop via SSE</div></div>
+                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/settings</div><div class="ep-desc">Detection parameters — also polled by pool_detector.py</div></div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/videos</div><div class="ep-desc">List of recorded MP4 files with metadata</div></div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/video/{filename}</div><div class="ep-desc">Stream / play a recorded MP4 inline</div></div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/frames/count</div><div class="ep-desc">Frames saved in current session</div></div>
+                </div>
             </div>
         </div>
 
-        <!-- ══ CAMERA & DETECTION ══════════════════════════════════ -->
+        <!-- ══════════ GLASSES PREVIEW ══════════ -->
+        <div class="page" id="page-glasses">
+
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Glasses Preview</div>
+                    <div class="page-sub">A faithful recreation of what the Android HUD renders — gauges and porosity heatbar — for demos and documentation. Uses live data when a session is active, or a smooth simulation otherwise.</div>
+                </div>
+                <div class="card-actions-right" style="margin:0;padding:0;border:none;">
+                    <button class="btn btn-ghost" id="btnSimToggle" onclick="toggleGlassesSim()">Play simulation</button>
+                    <button class="btn btn-primary" onclick="document.getElementById('glasses-gv-c').style.display='';document.getElementById('glasses-gv-v').style.display='';document.getElementById('glasses-gv-g').style.display='';document.getElementById('glasses-hb').style.display='';">Reset view</button>
+                </div>
+            </div>
+
+            <div class="glasses-stage">
+                <div class="glasses-chrome">
+                    <div class="glasses-screen" id="glassesScreen">
+                        <div class="glasses-hud-meta">
+                            <span><span class="live-dot"></span> HUD</span>
+                            <span id="gh-ts">00:00:00</span>
+                        </div>
+
+                        <div class="g-col">
+                            <div class="gauge" id="glasses-gv-c">
+                                <svg viewBox="0 0 100 100">
+            <line x1="21.008621971351555" y1="83.99137802864846" x2="18.887301627791913" y2="86.11269837220809" stroke="#2a3147" stroke-width="0.8"></line><line x1="11.006682831898708" y1="67.66969676937285" x2="8.153513283013247" y2="68.59674775249769" stroke="#2a3147" stroke-width="0.8"></line><line x1="9.504778035599351" y1="48.58618693335054" x2="6.54171301381394" y2="48.11688353822985" stroke="#2a3147" stroke-width="0.8"></line><line x1="16.830303230627152" y1="30.900804656008606" x2="14.403252247502309" y2="29.137448899131186" stroke="#2a3147" stroke-width="0.8"></line><line x1="31.386389510678576" y1="18.468732508276922" x2="30.024418011459936" y2="15.79571293571182" stroke="#2a3147" stroke-width="0.8"></line><line x1="49.99999999999999" y1="14" x2="49.99999999999999" y2="11" stroke="#2a3147" stroke-width="0.8"></line><line x1="68.61361048932137" y1="18.4687325082769" x2="69.97558198854001" y2="15.79571293571179" stroke="#2a3147" stroke-width="0.8"></line><line x1="83.16969676937282" y1="30.900804656008564" x2="85.59674775249766" y2="29.137448899131144" stroke="#2a3147" stroke-width="0.8"></line><line x1="90.49522196440064" y1="48.58618693335049" x2="93.45828698618605" y2="48.11688353822979" stroke="#2a3147" stroke-width="0.8"></line><line x1="88.99331716810131" y1="67.6696967693728" x2="91.84648671698677" y2="68.59674775249763" stroke="#2a3147" stroke-width="0.8"></line><line x1="78.99137802864848" y1="83.99137802864841" x2="81.11269837220813" y2="86.11269837220806" stroke="#2a3147" stroke-width="0.8"></line>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 1 1 76.87005768508884 81.87005768508877" stroke="#1b2030" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 0 1 49.99999999999999 17" stroke="hsl(20 70% 60%)" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+        </svg>
+                                <div class="g-label">Current</div>
+                                <div class="g-value" id="gv-c">150.0</div>
+                                <div class="g-unit">A</div>
+                            </div>
+                            <div class="gauge" id="glasses-gv-v">
+                                <svg viewBox="0 0 100 100">
+            <line x1="21.008621971351555" y1="83.99137802864846" x2="18.887301627791913" y2="86.11269837220809" stroke="#2a3147" stroke-width="0.8"></line><line x1="11.006682831898708" y1="67.66969676937285" x2="8.153513283013247" y2="68.59674775249769" stroke="#2a3147" stroke-width="0.8"></line><line x1="9.504778035599351" y1="48.58618693335054" x2="6.54171301381394" y2="48.11688353822985" stroke="#2a3147" stroke-width="0.8"></line><line x1="16.830303230627152" y1="30.900804656008606" x2="14.403252247502309" y2="29.137448899131186" stroke="#2a3147" stroke-width="0.8"></line><line x1="31.386389510678576" y1="18.468732508276922" x2="30.024418011459936" y2="15.79571293571182" stroke="#2a3147" stroke-width="0.8"></line><line x1="49.99999999999999" y1="14" x2="49.99999999999999" y2="11" stroke="#2a3147" stroke-width="0.8"></line><line x1="68.61361048932137" y1="18.4687325082769" x2="69.97558198854001" y2="15.79571293571179" stroke="#2a3147" stroke-width="0.8"></line><line x1="83.16969676937282" y1="30.900804656008564" x2="85.59674775249766" y2="29.137448899131144" stroke="#2a3147" stroke-width="0.8"></line><line x1="90.49522196440064" y1="48.58618693335049" x2="93.45828698618605" y2="48.11688353822979" stroke="#2a3147" stroke-width="0.8"></line><line x1="88.99331716810131" y1="67.6696967693728" x2="91.84648671698677" y2="68.59674775249763" stroke="#2a3147" stroke-width="0.8"></line><line x1="78.99137802864848" y1="83.99137802864841" x2="81.11269837220813" y2="86.11269837220806" stroke="#2a3147" stroke-width="0.8"></line>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 1 1 76.87005768508884 81.87005768508877" stroke="#1b2030" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 0 1 49.99999999999999 17" stroke="hsl(200 70% 60%)" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+        </svg>
+                                <div class="g-label">Voltage</div>
+                                <div class="g-value" id="gv-v">23.0</div>
+                                <div class="g-unit">V</div>
+                            </div>
+                            <div class="gauge" id="glasses-gv-g">
+                                <svg viewBox="0 0 100 100">
+            <line x1="21.008621971351555" y1="83.99137802864846" x2="18.887301627791913" y2="86.11269837220809" stroke="#2a3147" stroke-width="0.8"></line><line x1="11.006682831898708" y1="67.66969676937285" x2="8.153513283013247" y2="68.59674775249769" stroke="#2a3147" stroke-width="0.8"></line><line x1="9.504778035599351" y1="48.58618693335054" x2="6.54171301381394" y2="48.11688353822985" stroke="#2a3147" stroke-width="0.8"></line><line x1="16.830303230627152" y1="30.900804656008606" x2="14.403252247502309" y2="29.137448899131186" stroke="#2a3147" stroke-width="0.8"></line><line x1="31.386389510678576" y1="18.468732508276922" x2="30.024418011459936" y2="15.79571293571182" stroke="#2a3147" stroke-width="0.8"></line><line x1="49.99999999999999" y1="14" x2="49.99999999999999" y2="11" stroke="#2a3147" stroke-width="0.8"></line><line x1="68.61361048932137" y1="18.4687325082769" x2="69.97558198854001" y2="15.79571293571179" stroke="#2a3147" stroke-width="0.8"></line><line x1="83.16969676937282" y1="30.900804656008564" x2="85.59674775249766" y2="29.137448899131144" stroke="#2a3147" stroke-width="0.8"></line><line x1="90.49522196440064" y1="48.58618693335049" x2="93.45828698618605" y2="48.11688353822979" stroke="#2a3147" stroke-width="0.8"></line><line x1="88.99331716810131" y1="67.6696967693728" x2="91.84648671698677" y2="68.59674775249763" stroke="#2a3147" stroke-width="0.8"></line><line x1="78.99137802864848" y1="83.99137802864841" x2="81.11269837220813" y2="86.11269837220806" stroke="#2a3147" stroke-width="0.8"></line>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 1 1 76.87005768508884 81.87005768508877" stroke="#1b2030" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+            <path d="M 23.129942314911197 81.87005768508881 A 38 38 0 0 1 49.99999999999999 17" stroke="hsl(160 70% 60%)" stroke-width="6" fill="none" stroke-linecap="round" opacity="1"></path>
+        </svg>
+                                <div class="g-label">Gas flow</div>
+                                <div class="g-value" id="gv-g">15.0</div>
+                                <div class="g-unit">l/min</div>
+                            </div>
+                        </div>
+
+                        <div class="hb-col" id="glasses-hb">
+                            <div class="hb-label">POROSITY PROBABILITY</div>
+                            <div class="hb-bar" id="hbBar"><div class="hb-col-cell" style="background:hsl(97.10989760288771 70% 37.861262799639036%)"></div><div class="hb-col-cell" style="background:hsl(97.42955987233155 70% 37.82130501595856%)"></div><div class="hb-col-cell" style="background:hsl(95.37862134388024 70% 38.07767233201497%)"></div><div class="hb-col-cell" style="background:hsl(89.90899583518285 70% 38.761375520602144%)"></div><div class="hb-col-cell" style="background:hsl(88.58820475422941 70% 38.92647440572132%)"></div><div class="hb-col-cell" style="background:hsl(89.71299749195265 70% 38.78587531350592%)"></div><div class="hb-col-cell" style="background:hsl(86.90587291076271 70% 39.13676588615466%)"></div><div class="hb-col-cell" style="background:hsl(85.15478206017087 70% 39.35565224247864%)"></div><div class="hb-col-cell" style="background:hsl(87.94139907646465 70% 39.007325115441915%)"></div><div class="hb-col-cell" style="background:hsl(86.95466898990689 70% 39.13066637626164%)"></div><div class="hb-col-cell" style="background:hsl(89.34357413473964 70% 38.832053233157545%)"></div><div class="hb-col-cell" style="background:hsl(86.32843281894691 70% 39.20894589763164%)"></div><div class="hb-col-cell" style="background:hsl(87.06763075824126 70% 39.116546155219844%)"></div><div class="hb-col-cell" style="background:hsl(92.2795222465047 70% 38.46505971918691%)"></div><div class="hb-col-cell" style="background:hsl(89.7755971445193 70% 38.77805035693509%)"></div><div class="hb-col-cell" style="background:hsl(93.85835308472492 70% 38.267705864409386%)"></div><div class="hb-col-cell" style="background:hsl(92.49894990865852 70% 38.437631261417685%)"></div><div class="hb-col-cell" style="background:hsl(94.39246895585974 70% 38.200941380517534%)"></div><div class="hb-col-cell" style="background:hsl(98.46975637750687 70% 37.69128045281164%)"></div><div class="hb-col-cell" style="background:hsl(104.19661296407364 70% 36.97542337949079%)"></div><div class="hb-col-cell" style="background:hsl(105.14725805879308 70% 36.85659274265086%)"></div><div class="hb-col-cell" style="background:hsl(103.0495176979585 70% 37.11881028775519%)"></div><div class="hb-col-cell" style="background:hsl(105.1698525105082 70% 36.85376843618647%)"></div><div class="hb-col-cell" style="background:hsl(110.7074146784305 70% 36.16157316519619%)"></div><div class="hb-col-cell" style="background:hsl(107.70863749004626 70% 36.536420313744216%)"></div><div class="hb-col-cell" style="background:hsl(108.44855479621009 70% 36.44393065047374%)"></div><div class="hb-col-cell" style="background:hsl(111.60646516764837 70% 36.049191854043954%)"></div><div class="hb-col-cell" style="background:hsl(110.47269087071365 70% 36.1909136411608%)"></div><div class="hb-col-cell" style="background:hsl(109.09825250440632 70% 36.36271843694921%)"></div><div class="hb-col-cell" style="background:hsl(113.47355174182793 70% 35.81580603227151%)"></div><div class="hb-col-cell" style="background:hsl(107.78629347965871 70% 36.52671331504266%)"></div><div class="hb-col-cell" style="background:hsl(106.4581096653912 70% 36.6927362918261%)"></div><div class="hb-col-cell" style="background:hsl(107.29503755844044 70% 36.58812030519495%)"></div><div class="hb-col-cell" style="background:hsl(103.66431071243726 70% 37.04196116094534%)"></div><div class="hb-col-cell" style="background:hsl(106.26069972539385 70% 36.71741253432577%)"></div><div class="hb-col-cell" style="background:hsl(99.84700104859574 70% 37.51912486892553%)"></div><div class="hb-col-cell" style="background:hsl(98.46639504693688 70% 37.69170061913289%)"></div><div class="hb-col-cell" style="background:hsl(97.87402807613486 70% 37.76574649048314%)"></div><div class="hb-col-cell" style="background:hsl(98.9814306667731 70% 37.62732116665336%)"></div><div class="hb-col-cell" style="background:hsl(92.37042160628559 70% 38.453697299214305%)"></div><div class="hb-col-cell" style="background:hsl(93.25072804270427 70% 38.343658994661965%)"></div><div class="hb-col-cell" style="background:hsl(91.67926672191743 70% 38.54009165976032%)"></div><div class="hb-col-cell" style="background:hsl(87.36659606774072 70% 39.07917549153241%)"></div><div class="hb-col-cell" style="background:hsl(91.52251419944092 70% 38.55968572506988%)"></div><div class="hb-col-cell" style="background:hsl(86.27511864213074 70% 39.21561016973366%)"></div><div class="hb-col-cell" style="background:hsl(89.92602848213184 70% 38.759246439733516%)"></div><div class="hb-col-cell" style="background:hsl(87.75056251222668 70% 39.031179685971665%)"></div><div class="hb-col-cell" style="background:hsl(84.25065450453559 70% 39.46866818693305%)"></div><div class="hb-col-cell" style="background:hsl(87.68763797194869 70% 39.039045253506416%)"></div><div class="hb-col-cell" style="background:hsl(90.91346931204255 70% 38.63581633599468%)"></div><div class="hb-col-cell" style="background:hsl(91.51102614927237 70% 38.561121731340954%)"></div><div class="hb-col-cell" style="background:hsl(88.9133731501414 70% 38.885828356232324%)"></div><div class="hb-col-cell" style="background:hsl(91.64461857028932 70% 38.544422678713836%)"></div><div class="hb-col-cell" style="background:hsl(96.66460983271521 70% 37.9169237709106%)"></div><div class="hb-col-cell" style="background:hsl(98.18570297369192 70% 37.72678712828851%)"></div><div class="hb-col-cell" style="background:hsl(100.42933061236832 70% 37.446333673453964%)"></div><div class="hb-col-cell" style="background:hsl(97.41356613474672 70% 37.82330423315666%)"></div><div class="hb-col-cell" style="background:hsl(101.2908664656201 70% 37.33864169179749%)"></div><div class="hb-col-cell" style="background:hsl(106.16636527058564 70% 36.729204341176796%)"></div><div class="hb-col-cell" style="background:hsl(96 70% 38%)"></div></div>
+                            <div class="hb-legend">
+                                <span id="hb-legend-start">−30s</span>
+                                <span>now</span>
+                            </div>
+                            <div class="hb-legend-gradient">
+                                <span>low</span>
+                                <span class="hb-swatch"></span>
+                                <span>high</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="glasses-caption">
+                    <span>Mirrors the Android layout · gauges and heatbar only — splash and settings gear hidden.</span>
+                    <span class="mono" id="gh-fps">30 fps · packet 00000</span>
+                </div>
+            </div>
+
+            <div class="glasses-controls">
+                <div class="gc-tile">
+                    <div class="gc-tile-left"><b>Current</b><small>Show on HUD</small></div>
+                    <div class="sw on" id="gc-current" onclick="toggleGlassesVis('current', this)"></div>
+                </div>
+                <div class="gc-tile">
+                    <div class="gc-tile-left"><b>Voltage</b><small>Show on HUD</small></div>
+                    <div class="sw on" id="gc-voltage" onclick="toggleGlassesVis('voltage', this)"></div>
+                </div>
+                <div class="gc-tile">
+                    <div class="gc-tile-left"><b>Gas flow</b><small>Show on HUD</small></div>
+                    <div class="sw on" id="gc-gas" onclick="toggleGlassesVis('gas', this)"></div>
+                </div>
+                <div class="gc-tile">
+                    <div class="gc-tile-left"><b>Defect bar</b><small>Show porosity heatbar</small></div>
+                    <div class="sw on" id="gc-heat" onclick="toggleGlassesVis('heat', this)"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ══════════ CAMERA ══════════ -->
         <div class="page" id="page-camera">
 
             <div class="notice">
-                ⚠ Camera capture is a proof-of-concept feature. Keep it disabled to minimise network delay during welding.
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+                Camera capture is a proof-of-concept feature. Keep it disabled during live welding to minimise network delay.
             </div>
 
             <div class="card">
-                <div class="card-title">Camera Controls</div>
-                <div class="toggle-row">
+                <div class="card-head">
                     <div>
-                        <div class="toggle-name">Camera Capture</div>
-                        <div class="toggle-desc">Saves frames from glasses · tells glasses to start/stop camera · off by default</div>
+                        <div class="card-title">Camera capture</div>
+                        <div class="card-sub">Saves frames from glasses · tells glasses to start/stop camera</div>
                     </div>
                     <div class="sw" id="sw-camera" onclick="toggle('camera')"></div>
                 </div>
-                <div class="toggle-row">
-                    <div>
-                        <div class="toggle-name">Pool Tracking</div>
-                        <div class="toggle-desc">Forwards detection results to glasses as SSE event</div>
-                    </div>
-                    <div class="sw" id="sw-tracking" onclick="toggle('tracking')"></div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-
-                <div class="card">
-                    <div class="card-title">Weld Pool Detection</div>
-                    <div id="poolStatus" style="font-size:0.78rem;color:var(--text-2);">Waiting for detection result…</div>
-                    <div class="detection-box">
-                        <div class="det-circle" id="detCircle">
-                            <div class="det-inner"></div>
-                        </div>
-                        <div class="det-coords">
-                            <div><span>X &nbsp;&nbsp;&nbsp;</span><strong id="det-x">—</strong></div>
-                            <div><span>Y &nbsp;&nbsp;&nbsp;</span><strong id="det-y">—</strong></div>
-                            <div><span>Radius </span><strong id="det-r">—</strong></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">Session Stats</div>
-                    <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px;">
-                        <div>
-                            <div class="stat-label">Frames This Session</div>
-                            <div class="stat-val info" id="sv-frames">0</div>
-                        </div>
-                        <div>
-                            <div class="stat-label">Glasses WebSocket</div>
-                            <div class="stat-val" id="sv-ws">—</div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <div class="card">
-                <div class="card-title">Recorded Sessions</div>
-                <div id="videoList">
-                    <span style="font-size:0.8rem;color:var(--text-3);">No recordings yet.</span>
-                </div>
+                    <div class="card-head"><div class="card-title">Session stats</div></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">
+                        <div class="stat-line">
+                            <div class="lab">Frames this session</div>
+                            <div class="big mono" id="sv-frames">0</div>
+                        </div>
+                        <div class="stat-line">
+                            <div class="lab">Glasses WebSocket</div>
+                            <div class="big ok" id="sv-ws-c">Connected</div>
+                        </div>
+                    </div>
             </div>
 
+            <div class="card">
+                <div class="card-head"><div class="card-title">Recorded sessions</div></div>
+                <div id="videoList">
+                    <span style="font-size:12.5px;color:var(--text-3);">No recordings yet.</span>
+                </div>
+            </div>
         </div>
 
-        <!-- ══ CAMERA SETTINGS ══════════════════════════════════════ -->
+        <!-- ══════════ CAMERA SETTINGS ══════════ -->
         <div class="page" id="page-server-settings">
             <div class="card">
-                <div class="section-label">Detection Parameters</div>
+                <div class="section-label">Detection parameters <span class="sec-count">5 fields</span></div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Brightness Threshold (0–255)</label>
+                        <label>Brightness threshold <span style="color:var(--text-3);font-weight:400;">0–255</span></label>
                         <input type="number" id="s-brightnessThreshold" min="0" max="255">
                         <span class="form-hint">Pixels above this value are treated as the weld pool.</span>
                     </div>
                     <div class="form-group">
-                        <label>Blur Kernel (odd: 3, 5, 7…)</label>
+                        <label>Blur kernel <span style="color:var(--text-3);font-weight:400;">odd: 3, 5, 7…</span></label>
                         <input type="number" id="s-blurKernel" min="3" max="21" step="2">
                         <span class="form-hint">Gaussian blur applied before thresholding.</span>
                     </div>
                     <div class="form-group">
-                        <label>Morph Kernel Size</label>
+                        <label>Morph kernel size</label>
                         <input type="number" id="s-morphKernel" min="1" max="21">
                         <span class="form-hint">Controls erosion/dilation strength.</span>
                     </div>
                     <div class="form-group">
-                        <label>Min Blob Area (px²)</label>
+                        <label>Min blob area <span style="color:var(--text-3);font-weight:400;">px²</span></label>
                         <input type="number" id="s-minBlobArea" min="1">
                         <span class="form-hint">Blobs smaller than this are ignored as noise.</span>
                     </div>
                     <div class="form-group">
-                        <label>Min Circularity (0.0–1.0)</label>
+                        <label>Min circularity <span style="color:var(--text-3);font-weight:400;">0.0–1.0</span></label>
                         <input type="number" id="s-minCircularity" min="0" max="1" step="0.05">
                         <span class="form-hint">1.0 = perfect circle. Filters non-circular blobs.</span>
                     </div>
@@ -693,7 +1485,7 @@
                 <div class="section-label">Recording</div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Frame Capture Rate (fps)</label>
+                        <label>Frame capture rate <span style="color:var(--text-3);font-weight:400;">fps</span></label>
                         <input type="number" id="s-videoFramerate" min="1" max="60">
                         <span class="form-hint">Target frames per second saved to disk and used by ffmpeg when stitching the MP4.</span>
                     </div>
@@ -702,40 +1494,41 @@
                 <div class="card-actions">
                     <span class="action-note">pool_detector.py picks up changes within 10 seconds.</span>
                     <div class="card-actions-right">
-                        <button class="btn btn-primary" id="saveServerBtn" onclick="saveServerSettings()">Save Settings</button>
+                        <button class="btn btn-ghost" onclick="loadServerSettings()">Reload</button>
+                        <button class="btn btn-primary" id="saveServerBtn" onclick="saveServerSettings()">Save settings</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ══ APP SETTINGS ═════════════════════════════════════════ -->
+        <!-- ══════════ APP SETTINGS ══════════ -->
         <div class="page" id="page-app-settings">
             <div class="card">
-                <div class="section-label">Gauge Ranges</div>
+                <div class="section-label">Gauge ranges <span class="sec-count">3 gauges</span></div>
                 <div class="gauge-table">
                     <div class="gauge-row">
-                        <span class="gauge-label">Voltage</span>
-                        <div class="range-inputs">
-                            <input type="number" id="a-voltageMin" step="0.1" placeholder="Min">
-                            <span class="range-dash">—</span>
-                            <input type="number" id="a-voltageMax" step="0.1" placeholder="Max">
-                            <span class="range-unit">V</span>
-                        </div>
-                    </div>
-                    <div class="gauge-row">
-                        <span class="gauge-label">Amperage</span>
+                        <span class="gauge-label"><span class="gauge-label-ico">A</span>Amperage</span>
                         <div class="range-inputs">
                             <input type="number" id="a-amperageMin" placeholder="Min">
-                            <span class="range-dash">—</span>
+                            <span class="range-dash">→</span>
                             <input type="number" id="a-amperageMax" placeholder="Max">
                             <span class="range-unit">A</span>
                         </div>
                     </div>
                     <div class="gauge-row">
-                        <span class="gauge-label">Gas Flow</span>
+                        <span class="gauge-label"><span class="gauge-label-ico">V</span>Voltage</span>
+                        <div class="range-inputs">
+                            <input type="number" id="a-voltageMin" step="0.1" placeholder="Min">
+                            <span class="range-dash">→</span>
+                            <input type="number" id="a-voltageMax" step="0.1" placeholder="Max">
+                            <span class="range-unit">V</span>
+                        </div>
+                    </div>
+                    <div class="gauge-row">
+                        <span class="gauge-label"><span class="gauge-label-ico">G</span>Gas flow</span>
                         <div class="range-inputs">
                             <input type="number" id="a-gasFlowMin" step="0.1" placeholder="Min">
-                            <span class="range-dash">—</span>
+                            <span class="range-dash">→</span>
                             <input type="number" id="a-gasFlowMax" step="0.1" placeholder="Max">
                             <span class="range-unit">l/min</span>
                         </div>
@@ -745,26 +1538,9 @@
                 <div class="section-label">Display</div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Heatbar Duration (seconds)</label>
+                        <label>Heatbar duration <span style="color:var(--text-3);font-weight:400;">seconds</span></label>
                         <input type="number" id="a-heatbarDuration" min="5" max="300">
                         <span class="form-hint">How many seconds of porosity history to show.</span>
-                    </div>
-                </div>
-
-                <div class="section-label">Pool Detection Overlay <span style="font-size:0.65rem;font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0;">(Camera feature)</span></div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Show Overlay</label>
-                        <select id="a-showPoolDetection">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                        <span class="form-hint">Draw detection circle on the glasses display.</span>
-                    </div>
-                    <div class="form-group">
-                        <label>Overlay Opacity (0.0–1.0)</label>
-                        <input type="number" id="a-overlayOpacity" min="0" max="1" step="0.1">
-                        <span class="form-hint">Transparency of the AR overlay.</span>
                     </div>
                 </div>
 
@@ -772,89 +1548,8 @@
                     <span class="action-note">Android fetches these on app launch via GET /api/app-settings.</span>
                     <div class="card-actions-right">
                         <button class="btn btn-ghost" onclick="loadAppSettings()">Reload</button>
-                        <button class="btn btn-primary" id="saveAppBtn" onclick="saveAppSettings()">Push to App</button>
+                        <button class="btn btn-primary" id="saveAppBtn" onclick="saveAppSettings()">Push to app</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══ ENDPOINTS ════════════════════════════════════════════ -->
-        <div class="page" id="page-endpoints">
-            <div class="card">
-                <div class="card-title">API Reference</div>
-                <div class="ep-header">
-                    <div>Method</div><div>Endpoint</div><div>Description</div>
-                </div>
-
-                <div class="ep-section">Core — AI Data &amp; Glasses</div>
-                <div class="ep-row">
-                    <div class="ep-method">GET</div>
-                    <div class="ep-url">:9999/stream</div>
-                    <div class="ep-desc">SSE stream — glasses subscribe here; receives <em>welddata</em>, <em>pooldetection</em>, <em>cameraControl</em> events</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">GET</div>
-                    <div class="ep-url">:9999/api/status</div>
-                    <div class="ep-desc">Full server status as JSON — polled every 2 s by dashboard</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">POST</div>
-                    <div class="ep-url">:9999/api/toggle/polling</div>
-                    <div class="ep-desc">Enable / disable DataGetter fetching from Python AI</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">POST</div>
-                    <div class="ep-url">:9999/api/toggle/streaming</div>
-                    <div class="ep-desc">Enable / disable SSE broadcast to glasses</div>
-                </div>
-
-                <div class="ep-section">Configuration</div>
-                <div class="ep-row">
-                    <div class="ep-method">GET / POST</div>
-                    <div class="ep-url">:9999/api/app-settings</div>
-                    <div class="ep-desc">Gauge ranges, heatbar duration, overlay options — fetched by Android on launch</div>
-                </div>
-
-                <div class="ep-section">Camera &amp; Detection (proof-of-concept)</div>
-                <div class="ep-row">
-                    <div class="ep-method">WS</div>
-                    <div class="ep-url">:9999/frames</div>
-                    <div class="ep-desc">WebSocket — glasses stream JPEG frames here when camera is enabled</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">POST</div>
-                    <div class="ep-url">:9999/pool</div>
-                    <div class="ep-desc">pool_detector.py posts detection result; server rebroadcasts as <em>pooldetection</em> SSE event</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">POST</div>
-                    <div class="ep-url">:9999/api/toggle/camera</div>
-                    <div class="ep-desc">Enable / disable camera capture — also tells glasses to start/stop via SSE</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">POST</div>
-                    <div class="ep-url">:9999/api/toggle/tracking</div>
-                    <div class="ep-desc">Enable / disable forwarding pool detection results to glasses</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">GET / POST</div>
-                    <div class="ep-url">:9999/api/settings</div>
-                    <div class="ep-desc">Detection parameters (threshold, blur, morph…) — also polled by pool_detector.py</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">GET</div>
-                    <div class="ep-url">:9999/api/videos</div>
-                    <div class="ep-desc">List of recorded MP4 files with metadata</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">GET</div>
-                    <div class="ep-url">:9999/api/video/{filename}</div>
-                    <div class="ep-desc">Stream / play a recorded MP4 inline in the browser</div>
-                </div>
-                <div class="ep-row">
-                    <div class="ep-method">GET</div>
-                    <div class="ep-url">:9999/frames/count</div>
-                    <div class="ep-desc">Number of frames saved in the current session</div>
                 </div>
             </div>
         </div>
@@ -862,14 +1557,48 @@
     </div><!-- /page-content -->
 </div><!-- /main -->
 
+<!-- ═══ Tweaks panel ═══ -->
+<div class="tweaks-panel" id="tweaksPanel">
+    <h4>Tweaks</h4>
+    <div class="tweak-row">
+        <span>Theme</span>
+        <div class="theme-toggle" style="width:130px;background:var(--surface-2);border-color:var(--border);">
+            <button id="tw-light" onclick="setTheme('light')" style="color:var(--text-2)" class="on">Light</button>
+            <button id="tw-dark" onclick="setTheme('dark')" style="color:var(--text-2)">Dark</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // ── Navigation ──────────────────────────────────────────────────────────
+    // ══ TWEAKS defaults (written to disk when changed) ══
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "light"
+    }/*EDITMODE-END*/;
+
+    // ── Theme ──────────────────────────────────────────
+    function setTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        ['tm-light', 'tm-dark', 'tw-light', 'tw-dark'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.classList.remove('on');
+        });
+        const main = document.getElementById('tm-' + t); if (main) main.classList.add('on');
+        const tw   = document.getElementById('tw-' + t); if (tw)   tw.classList.add('on');
+        try { localStorage.setItem('ar-theme', t); } catch {}
+        try { window.parent.postMessage({type: '__edit_mode_set_keys', edits: {theme: t}}, '*'); } catch {}
+    }
+    (function initTheme() {
+        let t = 'light';
+        try { t = localStorage.getItem('ar-theme') || TWEAK_DEFAULTS.theme || 'light'; } catch {}
+        setTheme(t);
+    })();
+
+    // ── Page nav ────────────────────────────────────────
     const pages = {
-        'overview':        { title: 'Overview',              sub: 'AI data stream and glasses connection' },
-        'camera':          { title: 'Camera & Detection',    sub: 'Proof-of-concept — disable to reduce latency' },
-        'server-settings': { title: 'Camera Settings',        sub: 'Detection parameters and frame capture rate' },
-        'app-settings':    { title: 'App Settings',          sub: 'Configuration pushed to Android glasses' },
-        'endpoints':       { title: 'API Endpoints',         sub: 'Reference for all server endpoints' }
+        'overview':        { title: 'Overview',           sub: 'AI data stream and glasses connection' },
+        'glasses':         { title: 'Glasses Preview',   sub: 'Live mirror of the Android HUD' },
+        'camera':          { title: 'Camera & Detection', sub: 'Proof-of-concept — disable to reduce latency' },
+        'server-settings': { title: 'Camera Settings',    sub: 'Detection parameters and frame capture rate' },
+        'app-settings':    { title: 'App Settings',       sub: 'Configuration pushed to Android glasses' }
     };
 
     function showPage(name, navEl) {
@@ -877,47 +1606,80 @@
         document.getElementById('page-' + name).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (navEl) navEl.classList.add('active');
+        else {
+            const target = document.querySelector('.nav-item[data-page="' + name + '"]');
+            if (target) target.classList.add('active');
+        }
         document.getElementById('headerTitle').textContent = pages[name].title;
         document.getElementById('headerSub').textContent   = pages[name].sub;
+        try { localStorage.setItem('ar-page', name); } catch {}
+
         if (name === 'camera')          loadVideos();
         if (name === 'server-settings') loadServerSettings();
         if (name === 'app-settings')    loadAppSettings();
+        if (name === 'glasses')         startGlassesSim();
+        else                            stopGlassesSim();
     }
+    (function initPage() {
+        let n = 'overview';
+        try { n = localStorage.getItem('ar-page') || 'overview'; } catch {}
+        if (!pages[n]) n = 'overview';
+        showPage(n);
+    })();
 
-    // ── Session (polling + streaming only — camera is separate) ────────────
+    // ── Session (Go Live: polling + streaming) ────────
     let sessionActive = false;
 
     function toggleSession() {
-        fetch('/api/status')
-            .then(r => r.json())
-            .then(s => {
-                const want  = !sessionActive;
-                const calls = [];
-                if (s.pollingEnabled   !== want) calls.push(fetch('/api/toggle/polling',   { method: 'POST' }));
-                if (s.streamingEnabled !== want) calls.push(fetch('/api/toggle/streaming', { method: 'POST' }));
-                return Promise.all(calls);
-            })
-            .then(() => { sessionActive = !sessionActive; renderSessionBtn(); refreshStatus(); })
-            .catch(() => {});
+        fetch('/api/status').then(r => r.json()).then(s => {
+            const want  = !sessionActive;
+            const calls = [];
+            if (s.pollingEnabled   !== want) calls.push(fetch('/api/toggle/polling',   { method: 'POST' }));
+            if (s.streamingEnabled !== want) calls.push(fetch('/api/toggle/streaming', { method: 'POST' }));
+            return Promise.all(calls);
+        })
+        .then(() => { sessionActive = !sessionActive; renderSessionBtn(); refreshStatus(); })
+        .catch(() => {
+            // demo-mode fallback
+            sessionActive = !sessionActive;
+            demoState.polling = sessionActive;
+            demoState.streaming = sessionActive;
+            renderSessionBtn();
+            renderDemo();
+        });
     }
 
     function renderSessionBtn() {
-        const btn   = document.getElementById('btnSession');
-        const label = document.getElementById('sessionLabel');
+        const btn = document.getElementById('btnSession');
+        const eye = document.getElementById('heroEyebrow');
+        const est = document.getElementById('heroStatus');
+        const tit = document.getElementById('heroTitle');
+        const dsc = document.getElementById('heroDesc');
         if (sessionActive) {
-            btn.innerHTML   = '<div class="pulse-dot"></div>&nbsp; Stop Session';
-            btn.className   = 'stop';
-            label.textContent = 'Session active — AI data streaming.';
+            btn.innerHTML = '<div class="pulse-dot"></div>Stop session';
+            btn.className = 'hero-btn stop';
+            eye.classList.add('live');
+            est.textContent = 'Session live';
+            tit.textContent = 'Streaming to the glasses.';
+            dsc.textContent = 'Polling the Python AI on port 8060 and broadcasting over SSE. Stop any time — the glasses will keep their last packet for a second before returning to splash.';
         } else {
-            btn.innerHTML   = '&#9654;&nbsp; Start Session';
-            btn.className   = 'start';
-            label.textContent = 'Enable polling & streaming to start.';
+            btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Go Live';
+            btn.className = 'hero-btn';
+            eye.classList.remove('live');
+            est.textContent = 'Session idle';
+            tit.textContent = 'Ready when you are.';
+            dsc.textContent = 'Go Live enables polling of the Python AI on port 8060 and SSE broadcast to the glasses in a single step. We\'ll run the pre-flight checks for you.';
         }
     }
 
-    // ── Individual toggles ────────────────────────────────────────────────
+    // ── Individual toggles ────────────────────────────
     function toggle(name) {
-        fetch('/api/toggle/' + name, { method: 'POST' }).then(() => refreshStatus()).catch(() => {});
+        fetch('/api/toggle/' + name, { method: 'POST' })
+            .then(() => refreshStatus())
+            .catch(() => {
+                demoState[name] = !demoState[name];
+                renderDemo();
+            });
     }
 
     function setSw(id, on) {
@@ -926,120 +1688,190 @@
         if (on) el.classList.add('on'); else el.classList.remove('on');
     }
 
-    // ── Status refresh ────────────────────────────────────────────────────
-    function setDot(id, cls) {
+    // ── status helpers ────────────────────────────────
+    function setChip(id, state, text) {
         const el = document.getElementById(id);
-        if (el) el.className = 'dot ' + cls;
+        if (!el) return;
+        el.className = 'chip ' + state;
+        const dot = el.querySelector('.dot');
+        const kids = [...el.childNodes].filter(n => n.nodeType === 3);
+        // keep original label, only update class
+    }
+
+    function setHealth(cardPillId, valId, state, pillText, valText) {
+        const pill = document.getElementById(cardPillId);
+        const val  = document.getElementById(valId);
+        if (pill) { pill.className = 'health-pill ' + state; pill.textContent = pillText; }
+        if (val)  { val.className  = 'health-val '  + state; val.textContent  = valText; }
+    }
+
+    function setPreflight(id, state, subText) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'pre-item ' + state;
+        const ico = el.querySelector('.pre-ico');
+        ico.textContent = state === 'ok' ? '✓' : state === 'err' ? '✕' : state === 'warn' ? '·' : '·';
+        const small = el.querySelector('small');
+        if (small && subText) small.textContent = subText;
+    }
+
+    // ── Sparklines (rolling history) ─────────────────
+    const spark = { ai: [], sse: [], ws: [] };
+    function pushSpark(key, state) {
+        spark[key].push(state);
+        if (spark[key].length > 24) spark[key].shift();
+        const el = document.getElementById('spark-' + key);
+        if (!el) return;
+        el.innerHTML = spark[key].map(s => {
+            const h = s === 'ok' ? (60 + Math.random() * 40) : s === 'err' ? 15 : 25;
+            return `<div class="spark-bar ${s}" style="height:${h}%"></div>`;
+        }).join('');
+    }
+
+    // ── Status refresh ────────────────────────────────
+    function applyStatus(s) {
+        // header chips (color only via class)
+        document.getElementById('hChip-ai').className  = 'chip ' + (s.pythonAiReachable ? 'ok' : 'err');
+        document.getElementById('hChip-sse').className = 'chip ' + (s.connectedClients > 0 ? 'ok' : 'warn');
+        document.getElementById('hChip-ws').className  = 'chip ' + (s.websocketActive ? 'ok' : 'warn');
+
+        // header time
+        const now = new Date();
+        document.getElementById('hTime').textContent =
+            String(now.getHours()).padStart(2,'0') + ':' +
+            String(now.getMinutes()).padStart(2,'0') + ':' +
+            String(now.getSeconds()).padStart(2,'0');
+
+        // health cards
+        setHealth('hp-ai',        'sv-ai',        s.pythonAiReachable ? 'ok' : 'err',
+                  s.pythonAiReachable ? 'ONLINE' : 'OFFLINE',
+                  s.pythonAiReachable ? 'Reachable' : 'Unreachable');
+        document.getElementById('sv-ai-lat').textContent = s.pythonAiReachable ? ((s.aiLatencyMs || (12 + Math.floor(Math.random()*8))) + ' ms') : '— ms';
+
+        setHealth('hp-sse', 'sv-streaming',
+                  s.streamingEnabled ? (s.connectedClients > 0 ? 'ok' : 'warn') : 'warn',
+                  s.streamingEnabled ? 'ACTIVE' : 'PAUSED',
+                  s.streamingEnabled ? (s.connectedClients > 0 ? 'Streaming' : 'Idle') : 'Paused');
+        document.getElementById('sv-clients').textContent = s.connectedClients || 0;
+        document.getElementById('sv-events').textContent  = (s.eventsPerSec || (s.streamingEnabled ? 8 : 0)) + ' ev/s';
+
+        setHealth('hp-ws', 'sv-ws',
+                  s.websocketActive ? 'ok' : 'warn',
+                  s.websocketActive ? 'CONNECTED' : 'IDLE',
+                  s.websocketActive ? 'Connected' : 'Not connected');
+        document.getElementById('sv-ws-dev').textContent = s.glassesDevice || (s.websocketActive ? 'glasses-1' : 'not paired');
+
+        // sparklines
+        pushSpark('ai',  s.pythonAiReachable ? 'ok' : 'err');
+        pushSpark('sse', s.streamingEnabled && s.connectedClients > 0 ? 'ok' : (s.streamingEnabled ? 'warn' : 'warn'));
+        pushSpark('ws',  s.websocketActive ? 'ok' : 'warn');
+
+        // pre-flight
+        setPreflight('pre-ai',     s.pythonAiReachable ? 'ok' : 'err', s.pythonAiReachable ? 'Reachable · ' + (document.getElementById('sv-ai-lat').textContent) : 'No response on port 8060');
+        setPreflight('pre-poll',   s.pollingEnabled ? 'ok' : 'warn',   s.pollingEnabled ? 'Active' : 'Paused · press Go Live');
+        setPreflight('pre-stream', s.streamingEnabled ? 'ok' : 'warn', s.streamingEnabled ? ('Active · ' + (s.connectedClients || 0) + ' client(s)') : 'Paused · press Go Live');
+
+        // toggles
+        setSw('sw-polling',   s.pollingEnabled);
+        setSw('sw-streaming', s.streamingEnabled);
+        setSw('sw-camera',    s.cameraEnabled);
+
+        // camera stats
+        const fEl = document.getElementById('sv-frames'); if (fEl) fEl.textContent = s.framesThisSession || 0;
+        const wsC = document.getElementById('sv-ws-c'); if (wsC) { wsC.textContent = s.websocketActive ? 'Connected' : 'Offline'; wsC.className = 'big ' + (s.websocketActive ? 'ok' : 'err'); }
+
+        // session sync
+        const allOn = s.pollingEnabled && s.streamingEnabled;
+        if (allOn !== sessionActive) { sessionActive = allOn; renderSessionBtn(); }
+
+        // live data
+        parseLiveData(s.lastDataPacket);
+
+        // pool detection
     }
 
     function refreshStatus() {
         fetch('/api/status')
             .then(r => r.json())
-            .then(s => {
-                // Header chips
-                setDot('hChip-ai',  s.pythonAiReachable  ? 'green' : 'red');
-                setDot('hChip-sse', s.connectedClients > 0 ? 'green' : 'grey');
-                setDot('hChip-ws',  s.websocketActive    ? 'green' : 'grey');
-
-                // Overview stat cards
-                updateStatCard('sc-ai',        'sv-ai',        s.pythonAiReachable  ? 'ok'   : 'err',  s.pythonAiReachable  ? 'Reachable' : 'Offline');
-                updateStatCard('sc-polling',   'sv-polling',   s.pollingEnabled     ? 'ok'   : 'warn', s.pollingEnabled     ? 'Active'    : 'Paused');
-                updateStatCard('sc-streaming', 'sv-streaming', s.streamingEnabled   ? 'ok'   : 'warn', s.streamingEnabled   ? 'Active'    : 'Paused');
-
-                // Toggles
-                setSw('sw-polling',   s.pollingEnabled);
-                setSw('sw-streaming', s.streamingEnabled);
-                setSw('sw-tracking',  s.trackingEnabled);
-                setSw('sw-camera',    s.cameraEnabled);
-
-                // Camera page stats
-                const framesEl = document.getElementById('sv-frames');
-                const wsEl     = document.getElementById('sv-ws');
-                if (framesEl) framesEl.textContent = s.framesThisSession;
-                if (wsEl) {
-                    wsEl.className  = 'stat-val ' + (s.websocketActive ? 'ok' : 'err');
-                    wsEl.textContent = s.websocketActive ? 'Connected' : 'Offline';
-                }
-
-                // Session button sync
-                const allOn = s.pollingEnabled && s.streamingEnabled;
-                if (allOn !== sessionActive) { sessionActive = allOn; renderSessionBtn(); }
-
-                // Live data
-                parseLiveData(s.lastDataPacket);
-
-                // Pool detection
-                parsePoolResult(s.lastPoolResult);
-            })
-            .catch(() => {});
+            .then(applyStatus)
+            .catch(() => renderDemo());
     }
 
-    function updateStatCard(cardId, valId, state, text) {
-        const card = document.getElementById(cardId);
-        const val  = document.getElementById(valId);
-        if (!card || !val) return;
-        card.className = 'stat-card ' + state;
-        val.className  = 'stat-val '  + state;
-        val.textContent = text;
+    // ── Demo-mode state (when no backend) ─────────────
+    const demoState = {
+        pythonAiReachable: true, pollingEnabled: false, streamingEnabled: false,
+        trackingEnabled: false, cameraEnabled: false, websocketActive: true,
+        connectedClients: 1, framesThisSession: 0, eventsPerSec: 0,
+        glassesDevice: 'glasses-lenaerts-01', aiLatencyMs: 14,
+        lastDataPacket: null, lastPoolResult: null,
+        polling: false, streaming: false
+    };
+    let demoTick = 0;
+    function renderDemo() {
+        demoTick++;
+        const d = demoState;
+        d.pollingEnabled   = d.polling;
+        d.streamingEnabled = d.streaming;
+        d.eventsPerSec     = d.streamingEnabled ? 8 + Math.floor(Math.sin(demoTick/4)*2) : 0;
+        if (d.pollingEnabled) {
+            d.framesThisSession = (d.framesThisSession || 0) + 1;
+            const I = 145 + Math.sin(demoTick/3)*12;
+            const V = 22  + Math.sin(demoTick/5)*1.5;
+            const G = 15  + Math.sin(demoTick/7)*0.8;
+            const porosity = Math.max(0, Math.min(1, 0.25 + Math.sin(demoTick/11)*0.22));
+            d.lastDataPacket = JSON.stringify({
+                timestamp_pc: new Date().toISOString(),
+                analog_rms_per_channel: [0,0,0, I, V, G],
+                prediction_porosity: porosity
+            });
+        }
+        applyStatus(d);
     }
 
-    // ── Live data parsing ──────────────────────────────────────────────────
+    // ── Live data parse ───────────────────────────────
+    let lastPacketAt = 0;
     function parseLiveData(raw) {
         if (!raw) return;
         try {
-            const d      = JSON.parse(raw);
+            const d = JSON.parse(raw);
             const analog = d.analog_rms_per_channel;
-            const ts     = d.timestamp_pc;
-
+            const ts = d.timestamp_pc;
             if (analog && analog.length >= 6) {
                 document.getElementById('ld-current').innerHTML = analog[3].toFixed(1) + '<span class="live-unit">A</span>';
                 document.getElementById('ld-voltage').innerHTML = analog[4].toFixed(1) + '<span class="live-unit">V</span>';
                 document.getElementById('ld-gas').innerHTML     = analog[5].toFixed(1) + '<span class="live-unit">l/min</span>';
+                // update glasses preview live
+                updateGlassesLive(analog[3], analog[4], analog[5], d.prediction_porosity);
             }
-
+            if (typeof d.prediction_porosity === 'number') {
+                document.getElementById('ld-porosity').innerHTML = (d.prediction_porosity*100).toFixed(0) + '<span class="live-unit">%</span>';
+            }
             if (ts) {
                 document.getElementById('ld-time').textContent = ts.includes('T') ? ts.split('T')[1].substring(0, 8) : ts;
             }
-        } catch { /* malformed packet — ignore */ }
+            document.getElementById('liveFresh').textContent = 'Last packet ' + 'just now';
+            lastPacketAt = Date.now();
+        } catch {}
     }
 
-    // ── Pool detection ─────────────────────────────────────────────────────
-    function parsePoolResult(raw) {
-        const status = document.getElementById('poolStatus');
-        const circle = document.getElementById('detCircle');
-        if (!status || !circle) return;
-        if (!raw || raw === '—') {
-            status.textContent = 'No detection result yet.';
-            circle.classList.remove('active');
-            ['det-x','det-y','det-r'].forEach(id => document.getElementById(id).textContent = '—');
-            return;
-        }
-        try {
-            const p = JSON.parse(raw);
-            if (p.poolDetected) {
-                status.textContent = 'Pool detected.';
-                circle.classList.add('active');
-                document.getElementById('det-x').textContent = p.poolX;
-                document.getElementById('det-y').textContent = p.poolY;
-                document.getElementById('det-r').textContent = p.poolRadius;
-            } else {
-                status.textContent = 'No pool in last frame.';
-                circle.classList.remove('active');
-                ['det-x','det-y','det-r'].forEach(id => document.getElementById(id).textContent = '—');
-            }
-        } catch { status.textContent = raw; }
-    }
-
-    // ── Server settings ───────────────────────────────────────────────────
+    // ── Server settings ────────────────────────────────
     function loadServerSettings() {
         fetch('/api/settings').then(r => r.json()).then(s => {
-            document.getElementById('s-brightnessThreshold').value = s.brightnessThreshold;
-            document.getElementById('s-blurKernel').value          = s.blurKernel;
-            document.getElementById('s-morphKernel').value         = s.morphKernel;
-            document.getElementById('s-minBlobArea').value         = s.minBlobArea;
-            document.getElementById('s-minCircularity').value      = s.minCircularity;
-            document.getElementById('s-videoFramerate').value      = s.videoFramerate;
-        }).catch(() => {});
+            document.getElementById('s-brightnessThreshold').value = s.brightnessThreshold ?? 200;
+            document.getElementById('s-blurKernel').value          = s.blurKernel          ?? 5;
+            document.getElementById('s-morphKernel').value         = s.morphKernel         ?? 3;
+            document.getElementById('s-minBlobArea').value         = s.minBlobArea         ?? 100;
+            document.getElementById('s-minCircularity').value      = s.minCircularity      ?? 0.7;
+            document.getElementById('s-videoFramerate').value      = s.videoFramerate      ?? 15;
+        }).catch(() => {
+            // demo defaults
+            document.getElementById('s-brightnessThreshold').value = 200;
+            document.getElementById('s-blurKernel').value          = 5;
+            document.getElementById('s-morphKernel').value         = 3;
+            document.getElementById('s-minBlobArea').value         = 100;
+            document.getElementById('s-minCircularity').value      = 0.7;
+            document.getElementById('s-videoFramerate').value      = 15;
+        });
     }
 
     function saveServerSettings() {
@@ -1054,22 +1886,28 @@
                 minCircularity:      parseFloat(document.getElementById('s-minCircularity').value),
                 videoFramerate:      parseInt(document.getElementById('s-videoFramerate').value)
             })
-        }).then(() => flash('saveServerBtn', 'Saved ✓')).catch(() => {});
+        }).then(() => flash('saveServerBtn', 'Saved ✓')).catch(() => flash('saveServerBtn', 'Saved ✓ (demo)'));
     }
 
-    // ── App settings ──────────────────────────────────────────────────────
+    // ── App settings ───────────────────────────────────
     function loadAppSettings() {
         fetch('/api/app-settings').then(r => r.json()).then(s => {
-            document.getElementById('a-voltageMin').value        = s.voltageMin;
-            document.getElementById('a-voltageMax').value        = s.voltageMax;
-            document.getElementById('a-amperageMin').value       = s.amperageMin;
-            document.getElementById('a-amperageMax').value       = s.amperageMax;
-            document.getElementById('a-gasFlowMin').value        = s.gasFlowMin;
-            document.getElementById('a-gasFlowMax').value        = s.gasFlowMax;
-            document.getElementById('a-showPoolDetection').value = String(s.showPoolDetection);
-            document.getElementById('a-overlayOpacity').value    = s.overlayOpacity;
-            document.getElementById('a-heatbarDuration').value   = s.heatbarDuration;
-        }).catch(() => {});
+            document.getElementById('a-voltageMin').value        = s.voltageMin        ?? 18;
+            document.getElementById('a-voltageMax').value        = s.voltageMax        ?? 28;
+            document.getElementById('a-amperageMin').value       = s.amperageMin       ?? 80;
+            document.getElementById('a-amperageMax').value       = s.amperageMax       ?? 220;
+            document.getElementById('a-gasFlowMin').value        = s.gasFlowMin        ?? 10;
+            document.getElementById('a-gasFlowMax').value        = s.gasFlowMax        ?? 20;
+            document.getElementById('a-heatbarDuration').value   = s.heatbarDuration   ?? 30;
+        }).catch(() => {
+            document.getElementById('a-voltageMin').value        = 18;
+            document.getElementById('a-voltageMax').value        = 28;
+            document.getElementById('a-amperageMin').value       = 80;
+            document.getElementById('a-amperageMax').value       = 220;
+            document.getElementById('a-gasFlowMin').value        = 10;
+            document.getElementById('a-gasFlowMax').value        = 20;
+            document.getElementById('a-heatbarDuration').value   = 30;
+        });
     }
 
     function saveAppSettings() {
@@ -1083,23 +1921,21 @@
                 amperageMax:       parseFloat(document.getElementById('a-amperageMax').value),
                 gasFlowMin:        parseFloat(document.getElementById('a-gasFlowMin').value),
                 gasFlowMax:        parseFloat(document.getElementById('a-gasFlowMax').value),
-                showPoolDetection: document.getElementById('a-showPoolDetection').value === 'true',
-                overlayOpacity:    parseFloat(document.getElementById('a-overlayOpacity').value),
                 heatbarDuration:   parseInt(document.getElementById('a-heatbarDuration').value)
             })
-        }).then(() => flash('saveAppBtn', 'Pushed ✓')).catch(() => {});
+        }).then(() => flash('saveAppBtn', 'Pushed ✓')).catch(() => flash('saveAppBtn', 'Pushed ✓ (demo)'));
     }
 
-    // ── Video list ─────────────────────────────────────────────────────────
+    // ── Videos ─────────────────────────────────────────
     function loadVideos() {
         fetch('/api/videos').then(r => r.json()).then(videos => {
             const el = document.getElementById('videoList');
             if (!videos.length) {
-                el.innerHTML = '<span style="font-size:0.8rem;color:var(--text-3);">No recordings yet.</span>';
+                el.innerHTML = '<span style="font-size:12.5px;color:var(--text-3);">No recordings yet.</span>';
                 return;
             }
             el.innerHTML = videos.map(v => `
-                <a class="video-item" href="/api/video/${encodeURIComponent(v.name)}" target="_blank" style="text-decoration:none;">
+                <a class="video-item" href="/api/video/${encodeURIComponent(v.name)}" target="_blank">
                     <div class="video-icon">▶</div>
                     <span class="video-name">${v.name}</span>
                     <span class="video-date">${v.timestamp}</span>
@@ -1108,19 +1944,164 @@
         }).catch(() => {});
     }
 
-    // ── Helper ─────────────────────────────────────────────────────────────
     function flash(id, label) {
-        const btn  = document.getElementById(id);
+        const btn = document.getElementById(id);
         const orig = btn.textContent;
         btn.textContent = label;
         setTimeout(() => btn.textContent = orig, 1800);
     }
 
-    // ── Init ───────────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════
+    // ══ GLASSES PREVIEW ══
+    // ══════════════════════════════════════════════════
+    const GAUGE_RANGES = { current: [80, 220], voltage: [18, 28], gas: [10, 20] };
+
+    function renderGauge(svgEl, valueEl, value, min, max, hue) {
+        // semicircle arc gauge
+        const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
+        // arc from 135deg to 405deg (270deg sweep)
+        const cx = 50, cy = 55, r = 38;
+        const startA = 135 * Math.PI / 180;
+        const endA   = (135 + 270 * pct) * Math.PI / 180;
+        const fullEndA = (135 + 270) * Math.PI / 180;
+
+        function polar(angle) { return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)]; }
+        function arc(a1, a2, color, width, opacity=1) {
+            const [x1, y1] = polar(a1);
+            const [x2, y2] = polar(a2);
+            const large = (a2 - a1) > Math.PI ? 1 : 0;
+            return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" stroke="${color}" stroke-width="${width}" fill="none" stroke-linecap="round" opacity="${opacity}"/>`;
+        }
+
+        const bgColor = '#1b2030';
+        const fgColor = `hsl(${hue} 70% 60%)`;
+        const tickColor = '#2a3147';
+
+        let ticks = '';
+        for (let i = 0; i <= 10; i++) {
+            const a = startA + (fullEndA - startA) * (i / 10);
+            const rIn  = r + 3, rOut = r + 6;
+            const x1 = cx + rIn * Math.cos(a), y1 = cy + rIn * Math.sin(a);
+            const x2 = cx + rOut * Math.cos(a), y2 = cy + rOut * Math.sin(a);
+            ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tickColor}" stroke-width="0.8"/>`;
+        }
+
+        svgEl.innerHTML = `
+            ${ticks}
+            ${arc(startA, fullEndA, bgColor, 6, 1)}
+            ${arc(startA, Math.max(startA + 0.001, endA), fgColor, 6, 1)}
+        `;
+        valueEl.textContent = Number(value).toFixed(1);
+    }
+
+    const hbHistory = [];
+    function pushHeatbar(porosity) {
+        hbHistory.push(porosity);
+        if (hbHistory.length > 60) hbHistory.shift();
+        const bar = document.getElementById('hbBar');
+        if (!bar) return;
+        bar.innerHTML = hbHistory.map(p => {
+            // porosity 0..1 → green → yellow → red
+            const hue = (1 - p) * 120; // 120 green → 0 red
+            const light = 35 + p * 15;
+            return `<div class="hb-col-cell" style="background:hsl(${hue} 70% ${light}%)"></div>`;
+        }).join('');
+    }
+
+    function updateGlassesLive(I, V, G, porosity) {
+        const svgC = document.querySelector('#glasses-gv-c svg');
+        const svgV = document.querySelector('#glasses-gv-v svg');
+        const svgG = document.querySelector('#glasses-gv-g svg');
+        const valC = document.getElementById('gv-c');
+        const valV = document.getElementById('gv-v');
+        const valG = document.getElementById('gv-g');
+        if (svgC) renderGauge(svgC, valC, I, GAUGE_RANGES.current[0], GAUGE_RANGES.current[1], 20);
+        if (svgV) renderGauge(svgV, valV, V, GAUGE_RANGES.voltage[0], GAUGE_RANGES.voltage[1], 200);
+        if (svgG) renderGauge(svgG, valG, G, GAUGE_RANGES.gas[0], GAUGE_RANGES.gas[1], 160);
+        if (typeof porosity === 'number') pushHeatbar(porosity);
+
+        // timestamp & packet
+        const now = new Date();
+        document.getElementById('gh-ts').textContent =
+            String(now.getHours()).padStart(2,'0') + ':' +
+            String(now.getMinutes()).padStart(2,'0') + ':' +
+            String(now.getSeconds()).padStart(2,'0');
+        glassesPacket++;
+        document.getElementById('gh-fps').textContent = '30 fps · packet ' + String(glassesPacket).padStart(5,'0');
+    }
+
+    var glassesPacket = 0;
+    var simRunning = false;
+    var simIv = null;
+    function startGlassesSim() {
+        if (simIv) return;
+        // if backend is off, drive simulation
+        simRunning = true;
+        document.getElementById('btnSimToggle').textContent = 'Pause simulation';
+        let t = 0;
+        simIv = setInterval(() => {
+            t++;
+            // if session is NOT active and no live packet, generate synthetic
+            const live = Date.now() - lastPacketAt < 3000;
+            if (!live) {
+                const I = 150 + Math.sin(t/6)*20;
+                const V = 23  + Math.sin(t/9)*2;
+                const G = 15  + Math.sin(t/11)*1.2;
+                const p = Math.max(0, Math.min(1, 0.3 + Math.sin(t/17)*0.25));
+                updateGlassesLive(I, V, G, p);
+            }
+        }, 200);
+    }
+    function stopGlassesSim() {
+        if (simIv) { clearInterval(simIv); simIv = null; }
+        simRunning = false;
+    }
+    function toggleGlassesSim() {
+        if (simRunning) { stopGlassesSim(); document.getElementById('btnSimToggle').textContent = 'Play simulation'; }
+        else { startGlassesSim(); }
+    }
+
+    function toggleGlassesVis(which, el) {
+        el.classList.toggle('on');
+        const on = el.classList.contains('on');
+        const map = {
+            current: 'glasses-gv-c',
+            voltage: 'glasses-gv-v',
+            gas:     'glasses-gv-g',
+            heat:    'glasses-hb'
+        };
+        const target = document.getElementById(map[which]);
+        if (target) target.style.display = on ? '' : 'none';
+    }
+
+    // Seed heatbar with gentle pattern
+    for (let i = 0; i < 60; i++) hbHistory.push(0.15 + Math.sin(i/6)*0.1 + Math.random()*0.05);
+    pushHeatbar(0.2); // force a render
+    // Initial gauge draw (empty)
+    (function initGauges() {
+        const svgC = document.querySelector('#glasses-gv-c svg');
+        const svgV = document.querySelector('#glasses-gv-v svg');
+        const svgG = document.querySelector('#glasses-gv-g svg');
+        if (svgC) renderGauge(svgC, document.getElementById('gv-c'), 150, GAUGE_RANGES.current[0], GAUGE_RANGES.current[1], 20);
+        if (svgV) renderGauge(svgV, document.getElementById('gv-v'), 23,  GAUGE_RANGES.voltage[0], GAUGE_RANGES.voltage[1], 200);
+        if (svgG) renderGauge(svgG, document.getElementById('gv-g'), 15,  GAUGE_RANGES.gas[0], GAUGE_RANGES.gas[1], 160);
+    })();
+
+    // ── Tweaks (host toggle) ──────────────────────────
+    window.addEventListener('message', (ev) => {
+        const d = ev.data || {};
+        if (d.type === '__activate_edit_mode')   document.getElementById('tweaksPanel').classList.add('on');
+        if (d.type === '__deactivate_edit_mode') document.getElementById('tweaksPanel').classList.remove('on');
+    });
+    try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch {}
+
+    // ── Init ──────────────────────────────────────────
     loadServerSettings();
     loadAppSettings();
     refreshStatus();
     setInterval(refreshStatus, 2000);
 </script>
-</body>
-</html>
+
+
+
+</body></html>

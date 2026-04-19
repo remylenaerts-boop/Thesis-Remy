@@ -44,19 +44,19 @@ BRIGHTNESS_THRESHOLD = 200
 
 # Gaussian blur kernel size — must be an odd number (e.g. 5, 7, 9).
 # Higher = more smoothing. Helps clean up JPEG compression noise before thresholding.
-BLUR_KERNEL = 5
+BLUR_KERNEL = 7
 
 # Morphological kernel size — controls how aggressively erosion/dilation operate.
-# Higher = stronger effect. 5 is a good starting point for small noise specks.
-MORPH_KERNEL = 5
+# Higher = stronger effect.
+MORPH_KERNEL = 8
 
 # Minimum blob area in pixels — anything smaller than this is ignored as noise.
-MIN_BLOB_AREA = 50
+MIN_BLOB_AREA = 700
 
 # Circularity threshold — 1.0 is a perfect circle, 0.0 is a straight line.
 # The weld pool and flashlight are both close to circular.
 # Reject anything below this value to filter out non-circular reflections.
-MIN_CIRCULARITY = 0.4
+MIN_CIRCULARITY = 0.62
 
 # How often the folder is scanned for new frames (seconds).
 # 0.1 = 10 times per second, which is fast enough for smooth tracking.
@@ -233,10 +233,6 @@ def fetch_settings():
         MIN_BLOB_AREA        = settings.get("minBlobArea",         MIN_BLOB_AREA)
         MIN_CIRCULARITY      = settings.get("minCircularity",      MIN_CIRCULARITY)
 
-        print(f"[Detector] Settings updated — Threshold={BRIGHTNESS_THRESHOLD}  "
-              f"Blur={BLUR_KERNEL}  Morph={MORPH_KERNEL}  "
-              f"MinArea={MIN_BLOB_AREA}  MinCircularity={MIN_CIRCULARITY}")
-
     except Exception as e:
         print(f"[Detector] Could not fetch settings from dashboard: {e} (using current values)")
 
@@ -263,18 +259,31 @@ def main():
         files = sorted(glob.glob(FRAMES_DIR + "frame_?????.jpg"))
 
         if files:
-            latest_file   = files[-1]                    # highest number = most recent frame
-            latest_number = get_frame_number(latest_file)
+            # If the lowest frame number is less than last_processed, the Java server
+            # cleared the frames folder and started a new session — reset our counter.
+            lowest = get_frame_number(files[0])
+            if lowest < last_processed:
+                print("[Detector] Frame counter reset detected — starting fresh.")
+                last_processed = -1
 
-            if latest_number > last_processed:
-                result = detect_pool(latest_file)
-                post_result(result)
+            # Process every new frame since last_processed, not just the latest.
+            # Skipping intermediate frames would leave gaps in annotated/ and
+            # cause ffmpeg to truncate the video at the first missing frame number.
+            new_files = [f for f in files if get_frame_number(f) > last_processed]
+
+            for frame_file in new_files:
+                frame_number = get_frame_number(frame_file)
+                result = detect_pool(frame_file)
+
+                # Only POST the result for the most recent frame to avoid flooding the server.
+                if frame_file == new_files[-1]:
+                    post_result(result)
 
                 status = "DETECTED" if result["poolDetected"] else "not found"
-                print(f"[Detector] frame_{latest_number:05d}.jpg → {status}  "
+                print(f"[Detector] frame_{frame_number:05d}.jpg → {status}  "
                       f"x={result['poolX']}  y={result['poolY']}  r={result['poolRadius']}")
 
-                last_processed = latest_number
+                last_processed = frame_number
 
         time.sleep(POLL_INTERVAL)
 

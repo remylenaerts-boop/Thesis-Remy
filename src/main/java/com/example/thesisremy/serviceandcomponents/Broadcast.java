@@ -67,8 +67,7 @@ public class Broadcast {
         Sends a JSON string as a NAMED SSE event.
         The Android app can listen for a specific event name and ignore all others.
 
-        Currently used event names:
-          "pooldetection" — weld pool coordinates from pool_detector.py
+        Currently used event name:
           "cameraControl" — start/stop command sent to the glasses when camera is toggled
     */
     public void broadcastNamed(String eventName, String json) {
