@@ -60,6 +60,8 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     // Reference to the pending stitch task so we can cancel it on reconnect
     private volatile ScheduledFuture<?> pendingStitch = null;
 
+    private final LatencyStats frameStats = new LatencyStats("frame", 100);
+
     public FrameWebSocketHandler(ServerState serverState) {
         this.serverState = serverState;
         new File(FRAMES_DIR).mkdirs();
@@ -91,7 +93,11 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         message.getPayload().get(bytes);
 
         String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", frameCounter.getAndIncrement());
+        long t0 = System.nanoTime();
         Files.write(Paths.get(filename), bytes);
+        long writeMs = (System.nanoTime() - t0) / 1_000_000;
+        System.out.printf("[LATENCY][frame] diskWrite=%dms frameSize=%dKB%n", writeMs, bytes.length / 1024);
+        frameStats.record(writeMs);
     }
 
     /*

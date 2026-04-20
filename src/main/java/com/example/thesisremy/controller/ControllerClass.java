@@ -60,6 +60,7 @@ public class ControllerClass {
         Returns the number of frames saved so far in the current session.
         Handy for quickly checking whether frames are coming in.
         Example response: { "framesSaved": 42 }
+        This is also used in the dashboard.
     */
     @GetMapping("/frames/count")
     public ResponseEntity<String> frameCount() {
@@ -79,3 +80,26 @@ public class ControllerClass {
         return ResponseEntity.ok().build();
     }
 }
+
+/*
+Some extra info about the code, the ResponsEntity is a wrapper made by Spring 
+that lets you control the full HTTP response.
+
+To make it very simple, picture it like a shipping box, and the data inside is for example
+the String from /frames/count on line 66. The ResponseEntity is the box, this box has a label, status code (200- succes 404-not found)
+this status code lets the receiver know if the delivery was succesful or not. 
+
+The ResponseEntity is not really needed in this simple logic but is more for convention.
+If in the future you would like to send another status code it it easily implementable. 
+The documentation of this can be found here: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/http/ResponseEntity.html
+
+Then very short about the Spring annotations
+
+@RestController, Marks this class as the "front door" of your server. Any incoming web requests will be handled by the methods inside this class.
+@GetMapping, Handles requests that fetch data, like loading a webpage or asking "how many frames are saved?". Think of it as answering a question.
+@PostMapping, Handles requests that send data to the server, like submitting a form or uploading a frame. Think of it as receiving a delivery.
+
+@RestController: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/bind/annotation/RestController.html
+@GetMapping: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/bind/annotation/GetMapping.html
+@PostMapping: https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/bind/annotation/PostMapping.html
+*/

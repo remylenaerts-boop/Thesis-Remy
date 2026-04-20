@@ -26,6 +26,8 @@ import java.util.Map;
     The dashboard is a single HTML page at /dashboard that auto-refreshes its
     status every 2 seconds using JavaScript fetch() calls to the /api/* endpoints below.
 
+    Info about the @... annotations used here can also be found in the ControllerClass
+
     API overview:
       GET  /dashboard             — redirects to the static HTML page
       GET  /api/status            — current server status as JSON
@@ -116,11 +118,14 @@ public class DashboardController {
         Returns the list of recorded videos in the videos/ folder.
         Each entry contains the filename, human-readable file size, and formatted timestamp.
         The timestamp is extracted from the filename (video_YYYYMMDD_HHmmss.mp4).
+
+        Logic of the method: the file of the video's gets opened en everything that 
+        ends with a .mp4 so a video, is added to a new list, a simple list existing of two strings.
     */
     @GetMapping("/api/videos")
     public ResponseEntity<List<Map<String, String>>> videos() {
         File dir = new File(VIDEOS_DIR);
-        File[] files = dir.listFiles((d, name) -> name.endsWith(".mp4"));
+        File[] files = dir.listFiles((d, name) -> name.endsWith(".mp4")); //d not used here but needs to be here
         List<Map<String, String>> result = new ArrayList<>();
 
         if (files != null) {
