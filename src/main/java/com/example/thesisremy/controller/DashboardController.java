@@ -119,7 +119,7 @@ public class DashboardController {
         Each entry contains the filename, human-readable file size, and formatted timestamp.
         The timestamp is extracted from the filename (video_YYYYMMDD_HHmmss.mp4).
 
-        Logic of the method: the file of the video's gets opened en everything that 
+        Logic of the method: the file of the video's gets opened and everything that 
         ends with a .mp4 so a video, is added to a new list, a simple list existing of two strings.
     */
     @GetMapping("/api/videos")
@@ -201,6 +201,9 @@ public class DashboardController {
     /*
         Updates detector settings from the dashboard form.
         pool_detector.py fetches the updated values on its next settings poll cycle.
+
+        Logic of this part, the port receives a json, before the code can reag this we request a body and map the json to <String, Object>,
+        then simple if's to check wether the parameter has changed and that then changes it in the serverstate.
     */
     @PostMapping("/api/settings")
     public ResponseEntity<Void> updateSettings(@RequestBody Map<String, Object> body) {
@@ -222,8 +225,10 @@ public class DashboardController {
     /*
         Returns the current Android app configuration as JSON.
         The Android app calls this on launch so settings can be adjusted from the
-        dashboard without rebuilding the APK. Gauge ranges, alert thresholds, and
+        dashboard without rebuilding the APK. Gauge ranges and
         display options are all included.
+
+        Same thinking of above
     */
     @GetMapping("/api/app-settings")
     public ResponseEntity<Map<String, Object>> getAppSettings() {
