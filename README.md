@@ -52,9 +52,12 @@ src/main/java/com/example/thesisremy/
     ├── PoolDetectorLauncher.java       — starts pool_detector.py on server startup
     ├── DnsConfig.java                  — JmDNS mDNS registration
     ├── WebSocketConfig.java            — registers /frames endpoint (512 KB buffer)
-    └── StartupLogger.java              — prints endpoint URLs to console on startup
+    ├── StartupLogger.java              — prints endpoint URLs to console on startup
+    └── LatencyStats.java               — latency sample recorder + CSV writer (benchmarking)
 
 pool_detector.py                        — OpenCV weld pool detector (Python)
+test_pipeline.py                        — standalone test harness for the detection pipeline
+test_webcam.py                          — local webcam sanity check for pool detection
 requirements.txt                        — Python dependencies
 src/main/resources/static/
 ├── dashboard.html                      — operator dashboard (single-page HTML/CSS/JS)
@@ -202,11 +205,11 @@ Make sure the server machine and the glasses are on the same Wi-Fi network. Star
 
 | Page | What it does |
 |---|---|
-| **Overview** | Start/stop session, live sensor readings, Python AI and glasses connection status |
+| **Overview** | Start/stop session, live sensor readings, Python AI and glasses connection status, and a reference list of all server endpoints |
+| **Glasses Preview** | Faithful recreation of the Android HUD (gauges + porosity heatbar) — uses live data when a session is active, or a smooth simulation otherwise |
 | **Camera & Detection** | Enable/disable camera capture, frame counter, WebSocket status, recorded video list |
 | **Camera Settings** | Tune detection parameters live (changes take effect within 10 seconds) |
 | **App Settings** | Gauge display ranges and heatbar duration pushed to the Android app |
-| **API Endpoints** | Reference list of all server endpoints |
 
 ---
 
@@ -225,6 +228,7 @@ The Python AI endpoint is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `D
 | `MORPH_KERNEL` | `8` | Erosion/dilation kernel size. Higher = more aggressive noise removal and hole filling. |
 | `MIN_BLOB_AREA` | `700` | Minimum blob size in pixels. Blobs smaller than this are discarded as noise. |
 | `MIN_CIRCULARITY` | `0.62` | How round the blob must be (0.0–1.0, 1.0 = perfect circle). Rejects sparks and irregular reflections. |
+| `videoFramerate` | `30` | Frames per second used when stitching the annotated frames into the final MP4. |
 
 Enable `DEBUG_MODE = True` at the top of `pool_detector.py` to save binary threshold masks to `debug/` — useful for tuning the threshold when detection is not working.
 

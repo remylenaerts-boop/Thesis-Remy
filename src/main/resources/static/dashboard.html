@@ -1617,8 +1617,11 @@
         if (name === 'camera')          loadVideos();
         if (name === 'server-settings') loadServerSettings();
         if (name === 'app-settings')    loadAppSettings();
-        if (name === 'glasses')         startGlassesSim();
-        else                            stopGlassesSim();
+        if (name === 'glasses') {
+            if (!glassesPaused) startGlassesSim();
+        } else {
+            stopGlassesSim();
+        }
     }
     (function initPage() {
         let n = 'overview';
@@ -1966,31 +1969,37 @@
         const fullEndA = (135 + 270) * Math.PI / 180;
 
         function polar(angle) { return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)]; }
-        function arc(a1, a2, color, width, opacity=1) {
+        function arcD(a1, a2) {
             const [x1, y1] = polar(a1);
             const [x2, y2] = polar(a2);
             const large = (a2 - a1) > Math.PI ? 1 : 0;
-            return `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" stroke="${color}" stroke-width="${width}" fill="none" stroke-linecap="round" opacity="${opacity}"/>`;
+            return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
         }
 
-        const bgColor = '#1b2030';
         const fgColor = `hsl(${hue} 70% 60%)`;
-        const tickColor = '#2a3147';
 
-        let ticks = '';
-        for (let i = 0; i <= 10; i++) {
-            const a = startA + (fullEndA - startA) * (i / 10);
-            const rIn  = r + 3, rOut = r + 6;
-            const x1 = cx + rIn * Math.cos(a), y1 = cy + rIn * Math.sin(a);
-            const x2 = cx + rOut * Math.cos(a), y2 = cy + rOut * Math.sin(a);
-            ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tickColor}" stroke-width="0.8"/>`;
+        // Build static structure once, then mutate only the foreground path.
+        // Rewriting innerHTML every frame causes flicker.
+        let fg = svgEl.__fgPath;
+        if (!fg) {
+            const bgColor = '#1b2030';
+            const tickColor = '#2a3147';
+            let ticks = '';
+            for (let i = 0; i <= 10; i++) {
+                const a = startA + (fullEndA - startA) * (i / 10);
+                const rIn  = r + 3, rOut = r + 6;
+                const x1 = cx + rIn * Math.cos(a), y1 = cy + rIn * Math.sin(a);
+                const x2 = cx + rOut * Math.cos(a), y2 = cy + rOut * Math.sin(a);
+                ticks += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${tickColor}" stroke-width="0.8"/>`;
+            }
+            svgEl.innerHTML =
+                ticks +
+                `<path d="${arcD(startA, fullEndA)}" stroke="${bgColor}" stroke-width="6" fill="none" stroke-linecap="round"/>` +
+                `<path class="gauge-fg" d="${arcD(startA, startA + 0.001)}" stroke="${fgColor}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+            fg = svgEl.__fgPath = svgEl.querySelector('.gauge-fg');
         }
-
-        svgEl.innerHTML = `
-            ${ticks}
-            ${arc(startA, fullEndA, bgColor, 6, 1)}
-            ${arc(startA, Math.max(startA + 0.001, endA), fgColor, 6, 1)}
-        `;
+        fg.setAttribute('d', arcD(startA, Math.max(startA + 0.001, endA)));
+        fg.setAttribute('stroke', fgColor);
         valueEl.textContent = Number(value).toFixed(1);
     }
 
@@ -2000,15 +2009,29 @@
         if (hbHistory.length > 60) hbHistory.shift();
         const bar = document.getElementById('hbBar');
         if (!bar) return;
+
+        // Steady state: shift out the oldest cell and append one new cell.
+        // Rewriting all 60 children via innerHTML each frame caused flicker.
+        if (bar.children.length === hbHistory.length && bar.children.length >= 60) {
+            bar.removeChild(bar.firstChild);
+            const hue = (1 - porosity) * 120;
+            const light = 35 + porosity * 15;
+            const cell = document.createElement('div');
+            cell.className = 'hb-col-cell';
+            cell.style.background = `hsl(${hue} 70% ${light}%)`;
+            bar.appendChild(cell);
+            return;
+        }
+        // Initial / out-of-sync: render all cells from history.
         bar.innerHTML = hbHistory.map(p => {
-            // porosity 0..1 → green → yellow → red
-            const hue = (1 - p) * 120; // 120 green → 0 red
+            const hue = (1 - p) * 120;
             const light = 35 + p * 15;
             return `<div class="hb-col-cell" style="background:hsl(${hue} 70% ${light}%)"></div>`;
         }).join('');
     }
 
     function updateGlassesLive(I, V, G, porosity) {
+        if (glassesPaused) return;
         const svgC = document.querySelector('#glasses-gv-c svg');
         const svgV = document.querySelector('#glasses-gv-v svg');
         const svgG = document.querySelector('#glasses-gv-g svg');
@@ -2033,21 +2056,23 @@
     var glassesPacket = 0;
     var simRunning = false;
     var simIv = null;
+    var glassesPaused = false;
+    // Hoisted out of startGlassesSim so pause/resume doesn't snap the sine
+    // waves back to t=0 and cause the gauges to jump.
+    var simT = 0;
     function startGlassesSim() {
         if (simIv) return;
-        // if backend is off, drive simulation
         simRunning = true;
+        glassesPaused = false;
         document.getElementById('btnSimToggle').textContent = 'Pause simulation';
-        let t = 0;
         simIv = setInterval(() => {
-            t++;
-            // if session is NOT active and no live packet, generate synthetic
+            simT++;
             const live = Date.now() - lastPacketAt < 3000;
             if (!live) {
-                const I = 150 + Math.sin(t/6)*20;
-                const V = 23  + Math.sin(t/9)*2;
-                const G = 15  + Math.sin(t/11)*1.2;
-                const p = Math.max(0, Math.min(1, 0.3 + Math.sin(t/17)*0.25));
+                const I = 150 + Math.sin(simT/6)*20;
+                const V = 23  + Math.sin(simT/9)*2;
+                const G = 15  + Math.sin(simT/11)*1.2;
+                const p = Math.max(0, Math.min(1, 0.3 + Math.sin(simT/17)*0.25));
                 updateGlassesLive(I, V, G, p);
             }
         }, 200);
@@ -2057,8 +2082,13 @@
         simRunning = false;
     }
     function toggleGlassesSim() {
-        if (simRunning) { stopGlassesSim(); document.getElementById('btnSimToggle').textContent = 'Play simulation'; }
-        else { startGlassesSim(); }
+        if (simRunning) {
+            stopGlassesSim();
+            glassesPaused = true;
+            document.getElementById('btnSimToggle').textContent = 'Play simulation';
+        } else {
+            startGlassesSim();
+        }
     }
 
     function toggleGlassesVis(which, el) {
