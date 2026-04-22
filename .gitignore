@@ -38,6 +38,7 @@ thesis_writing_prompt.txt
 DOCUMENTATION.txt
 test_webcam.py
 test_pipeline.py
+DOCUMENTATION.txt
 
 ### Generated at runtime — created automatically when the server starts ###
 frames/
