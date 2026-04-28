@@ -105,12 +105,12 @@ def detect_pool(image_path):
 
     height, width = frame.shape
 
-    # ── Step 1: Gaussian blur ────────────────────────────────────────────────
+    # Step 1: Gaussian blur 
     # Smooths the image before thresholding so JPEG compression artifacts
     # and small noise specks do not produce false contours.
     blurred = cv2.GaussianBlur(frame, (BLUR_KERNEL, BLUR_KERNEL), 0)
 
-    # ── Step 2: Brightness threshold ─────────────────────────────────────────
+    # Step 2: Brightness threshold 
     # Pixels brighter than BRIGHTNESS_THRESHOLD become white, everything else black.
     # This isolates the bright weld pool or flashlight as a white blob.
     _, binary = cv2.threshold(blurred, BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
@@ -124,29 +124,29 @@ def detect_pool(image_path):
         cv2.imwrite(debug_path, binary)
         print(f"[Detector] Debug mask saved: {debug_path} (white pixels = detected as bright)")
 
-    # ── Step 3: Morphological opening (erode → dilate) ───────────────────────
+    # Step 3: Morphological opening (erode → dilate) 
     # Erosion shrinks all white regions. This removes small isolated noise specks
     # that are not part of the actual blob because they disappear under erosion.
     # Dilation then restores the size of the remaining (real) blob.
     kernel  = np.ones((MORPH_KERNEL, MORPH_KERNEL), np.uint8)
     opened  = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
-    # ── Step 4: Morphological closing (dilate → erode) ───────────────────────
+    # Step 4: Morphological closing (dilate → erode) 
     # Dilation expands the blob to fill small holes and gaps caused by JPEG
     # compression or uneven brightness inside the weld pool.
     # Erosion then restores the outer boundary to its original size.
     closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, kernel)
 
-    # ── Step 5: Find contours ────────────────────────────────────────────────
+    # Step 5: Find contours 
     # Finds the boundaries of all white regions in the cleaned binary image.
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if not contours:
         return save_and_return_no_detection()
 
-    # ── Step 6: Filter by area and circularity ───────────────────────────────
+    # Step 6: Filter by area and circularity 
     # For each contour, compute its area and circularity.
-    # Circularity = 4π × area / perimeter² — equals 1.0 for a perfect circle.
+    # Circularity = 4π × area / perimeter²,  equals 1.0 for a perfect circle.
     # We keep only contours that are large enough and round enough.
     valid = []
     for contour in contours:
@@ -167,15 +167,15 @@ def detect_pool(image_path):
     if not valid:
         return save_and_return_no_detection()
 
-    # ── Step 7: Take the largest valid contour ───────────────────────────────
+    # Step 7: Take the largest valid contour
     # If multiple round blobs pass the filter, the largest one is assumed to
     # be the weld pool. Smaller ones are likely reflections or sparks.
     largest_contour = max(valid, key=lambda x: x[0])[1]
 
-    # ── Step 8: Compute center and radius ────────────────────────────────────
+    # Step 8: Compute center and radius 
     (cx, cy), radius = cv2.minEnclosingCircle(largest_contour)
 
-    # ── Step 9: Draw the detection circle on the color frame ─────────────────
+    # Step 9: Draw the detection circle on the color frame 
     # A green circle marks the detected pool boundary.
     # A small red dot marks the exact center point.
     cx_int = int(cx)
@@ -243,7 +243,7 @@ def main():
     # Make sure the annotated frames folder exists
     os.makedirs(ANNOTATED_DIR, exist_ok=True)
 
-    # Fetch settings from the dashboard on startup — override the defaults above
+    # Fetch settings from the dashboard on startup, override the defaults above
     fetch_settings()
 
     last_processed      = -1    # frame number of the last processed frame
@@ -263,7 +263,7 @@ def main():
             # cleared the frames folder and started a new session — reset our counter.
             lowest = get_frame_number(files[0])
             if lowest < last_processed:
-                print("[Detector] Frame counter reset detected — starting fresh.")
+                print("[Detector] Frame counter reset detected, starting fresh.")
                 last_processed = -1
 
             # Process every new frame since last_processed, not just the latest.

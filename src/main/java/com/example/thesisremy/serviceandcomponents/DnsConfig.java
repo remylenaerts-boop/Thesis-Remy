@@ -15,10 +15,10 @@ import jakarta.annotation.PostConstruct;
     so the Android glasses can find it by name instead of by IP address.
 
     The problem this solves: every time the server computer connects to Wi-Fi
-    it may get a different IP address (e.g. 192.168.1.42 today, 192.168.1.67 tomorrow).
-    Hardcoding an IP address in the glasses app would break every time this happens.
+    it may get a different IP address (192.168.1.42 today, 192.168.1.67 tomorrow).
+    Hardcoding an IP address in the glasses app would annoying to change every time this happens.
 
-    The solution is mDNS (multicast DNS) — the same technology that lets you find
+    The solution is mDNS (multicast DNS), the same technology that lets you find
     a printer or Chromecast on your home network by name. The server broadcasts its
     presence on the local network, and any device that asks "where is sse-server.local?"
     gets the current IP address back automatically.

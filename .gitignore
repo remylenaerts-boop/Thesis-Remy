@@ -38,7 +38,9 @@ thesis_writing_prompt.txt
 DOCUMENTATION.txt
 test_webcam.py
 test_pipeline.py
-DOCUMENTATION.txt
+flowchart_1_overview.txt
+flowchart_2_intermediate.txt
+flowchart_3_detailed.txt
 
 ### Generated at runtime — created automatically when the server starts ###
 frames/

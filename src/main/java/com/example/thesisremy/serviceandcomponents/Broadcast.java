@@ -48,8 +48,8 @@ public class Broadcast {
 
     /*
         Sends welding data as an UNNAMED SSE event.
-        Unnamed events are received by the standard onMessage() handler in Android —
-        keeping this unnamed means the existing Android app works without any changes.
+        Unnamed events are received by the standard onMessage() handler in Android.
+        Makes it simple to remove all the other additions.
     */
     public void broadcast(String json) {
         emitters.removeIf(emitter -> {
@@ -69,6 +69,7 @@ public class Broadcast {
 
         Currently used event name:
           "cameraControl" — start/stop command sent to the glasses when camera is toggled
+        We could easily expand this to the weldpool location and other small pieces of data.
     */
     public void broadcastNamed(String eventName, String json) {
         emitters.removeIf(emitter -> {

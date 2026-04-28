@@ -203,13 +203,20 @@ Make sure the server machine and the glasses are on the same Wi-Fi network. Star
 
 ## Dashboard overview
 
-| Page | What it does |
-|---|---|
-| **Overview** | Start/stop session, live sensor readings, Python AI and glasses connection status, and a reference list of all server endpoints |
-| **Glasses Preview** | Faithful recreation of the Android HUD (gauges + porosity heatbar) — uses live data when a session is active, or a smooth simulation otherwise |
-| **Camera & Detection** | Enable/disable camera capture, frame counter, WebSocket status, recorded video list |
-| **Camera Settings** | Tune detection parameters live (changes take effect within 10 seconds) |
-| **App Settings** | Gauge display ranges and heatbar duration pushed to the Android app |
+The dashboard has two operator profiles, switched by clicking the user-chip in the bottom-left corner of the sidebar:
+
+- **User** (default) — sees only **Overview** and **Glasses Preview**. Intended for the welder or session operator who just needs to start a session and watch the live feedback.
+- **Developer** — sees everything below. Intended for engineering / tuning.
+
+The choice is persisted in `localStorage` and sticks across reloads. Switching to **User** while on a developer-only page automatically returns to Overview.
+
+| Page | Profile | What it does |
+|---|---|---|
+| **Overview** | User + Developer | Start/stop session, live sensor readings, Python AI and glasses connection status, and a reference list of all server endpoints |
+| **Glasses Preview** | User + Developer | Faithful recreation of the Android HUD (gauges + porosity heatbar) — uses live data when a session is active, or a smooth simulation otherwise |
+| **Camera & Detection** | Developer only | Enable/disable camera capture, frame counter, WebSocket status, recorded video list |
+| **Camera Settings** | Developer only | Tune detection parameters live (changes take effect within 10 seconds) |
+| **App Settings** | Developer only | Gauge display ranges and heatbar duration pushed to the Android app |
 
 ---
 

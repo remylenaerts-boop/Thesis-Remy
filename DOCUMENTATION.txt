@@ -527,19 +527,23 @@ Page Structure
     - Start/Stop Session button: enables/disables both polling and streaming together
     - Last pool detection result
 
-  Camera & Detection page
+  Glasses Preview page
+    - Faithful recreation of the Android HUD: gauges + porosity heatbar
+    - Uses live data when a session is active, simulated data otherwise
+
+  Camera & Detection page (developer-only)
     - Camera toggle (disabled by default, with a notice explaining it is a POC)
     - Pool tracking toggle
     - Frame counter and WebSocket connection status
     - Recorded video list with playback
 
-  Camera Settings page (was: Server Settings)
+  Camera Settings page (developer-only, was: Server Settings)
     - Detection parameters: brightness threshold, blur kernel, morph kernel,
       min blob area, min circularity
     - Frame capture rate (fps for the stitched MP4)
     - Saved immediately to ServerState; pool_detector.py picks them up within 10s
 
-  App Settings page
+  App Settings page (developer-only)
     - Gauge display ranges (voltage, amperage, gas flow min/max)
     - Heatbar duration: seconds of porosity history shown on glasses
     - Overlay opacity and pool detection overlay toggle
@@ -550,6 +554,31 @@ Page Structure
       Core (stream, pool POST, frame count),
       Configuration (settings, app-settings, status),
       Camera & Detection (camera toggle, video list, video streaming)
+
+User Profile vs Developer Profile
+----------------------------------
+The dashboard supports two operator profiles, switchable from the user-chip in
+the bottom-left corner of the sidebar:
+
+  User profile (default)
+    - Sees only Overview and Glasses Preview
+    - Intended for the welder or a non-technical session operator who only
+      needs to start a session and watch the live feedback
+
+  Developer profile
+    - Sees everything: Overview, Glasses Preview, Camera & Detection,
+      Camera Settings, and App Settings
+    - Intended for the engineer tuning the system or developing new features
+
+Clicking the user-chip toggles between the two roles. The choice is persisted
+in localStorage under "ar-role" so it sticks across reloads. If the operator
+switches to User profile while sitting on a developer-only page, the dashboard
+automatically jumps to Overview so they are not stranded on a hidden page.
+
+The role state is held in a single HTML attribute (data-role on the <html>
+element) and developer-only sections/items are tagged with data-dev-only.
+A single CSS rule hides them when data-role="user" — no per-component
+conditionals needed.
 
 Design Decision: Camera as Background POC
 ------------------------------------------

@@ -11,7 +11,7 @@ import java.io.File;
     Starts pool_detector.py as a subprocess when the Java server starts up,
     and kills it cleanly when the server shuts down.
 
-    This means you only need to launch the Java server — the Python detector
+    This means you only need to launch the Java server, the Python detector
     starts automatically alongside it.
 
     The script is expected to live in the working directory (project root).
@@ -92,7 +92,7 @@ public class PoolDetectorLauncher {
 
                 System.err.println("[Launcher] Packages still not importable after install — detector will not start.");
             } catch (Exception ignored) {
-                // command not found — try the next one
+                // command not found, try the next one
             }
         }
         return null;

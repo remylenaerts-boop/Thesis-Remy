@@ -18,7 +18,7 @@ public class ServerState {
     // Shared constant — single place to update if the Python AI port changes
     public static final String PYTHON_AI_URL = "http://127.0.0.1:8060/api/v1/live";
 
-    // ── Runtime toggles ───────────────────────────────────────────────────────
+    // ── Runtime toggles 
 
     // When false, DataGetter stops polling the Python AI entirely
     // Starts as false — enable from the dashboard once everything is connected and configured
@@ -28,7 +28,7 @@ public class ServerState {
     // Starts as false — enable from the dashboard once everything is connected and configured
     private volatile boolean streamingEnabled = false;
 
-    // ── Detector settings ─────────────────────────────────────────────────────
+    // ── Detector settings 
     // These are read by pool_detector.py via GET /api/settings.
     // Changing them from the dashboard takes effect on the next detector poll cycle.
 
@@ -39,7 +39,7 @@ public class ServerState {
     private volatile double minCircularity      = 0.62; // 0.0-1.0, 1.0 = perfect circle
     private volatile int    videoFramerate      = 30;   // fps used when stitching MP4
 
-    // ── Camera capture (proof-of-concept feature — off by default) ───────────
+    // ── Camera capture (proof-of-concept feature — off by default) 
     // When false: frames from the glasses are discarded, pool detector is idle,
     // and the glasses are told to stop their camera via a "cameraControl" SSE event.
     private volatile boolean cameraEnabled = false;
@@ -47,7 +47,7 @@ public class ServerState {
     // ── Android app settings (fetched by the app on launch via GET /api/app-settings) ──
 
     // Gauge display ranges — set these to the realistic operating ranges for the welder
-    private volatile double voltageMin    =  10.0;   // V
+    private volatile double voltageMin    =  0.0;   // V
     private volatile double voltageMax    =  40.0;   // V
     private volatile double amperageMin   =   0.0;   // A
     private volatile double amperageMax   = 400.0;   // A
@@ -57,13 +57,13 @@ public class ServerState {
     // Heatbar display
     private volatile int heatbarDuration = 30;  // seconds of porosity history shown on the glasses
 
-    // ── Last known data packets (shown on overview dashboard) ────────────────
+    // Last known data packets (shown on overview dashboard) 
     private volatile String lastDataPacket = "";  // last JSON received from Python AI
 
-    // ── Last known pool detection result (shown on dashboard) ─────────────────
-    private volatile String lastPoolResult = "—";
+    // Last known pool detection result (shown on dashboard) 
+    private volatile String lastPoolResult = "-";
 
-    // ── Toggles ───────────────────────────────────────────────────────────────
+    // Toggles 
 
     public boolean isPollingEnabled()   { return pollingEnabled; }
     public boolean isStreamingEnabled() { return streamingEnabled; }
@@ -71,7 +71,7 @@ public class ServerState {
     public void togglePolling()   { pollingEnabled   = !pollingEnabled; }
     public void toggleStreaming() { streamingEnabled = !streamingEnabled; }
 
-    // ── Detector settings getters / setters ───────────────────────────────────
+    // Detector settings getters / setters 
 
     public int    getBrightnessThreshold() { return brightnessThreshold; }
     public int    getBlurKernel()          { return blurKernel; }
@@ -90,7 +90,7 @@ public class ServerState {
     public String getLastPoolResult()        { return lastPoolResult; }
     public void   setLastPoolResult(String v){ this.lastPoolResult = v; }
 
-    // ── App settings getters / setters ────────────────────────────────────
+    //  App settings getters / setters 
 
     public double  getVoltageMin()           { return voltageMin; }
     public void    setVoltageMin(double v)   { this.voltageMin = v; }
@@ -113,12 +113,12 @@ public class ServerState {
     public int  getHeatbarDuration()       { return heatbarDuration; }
     public void setHeatbarDuration(int v)  { this.heatbarDuration = v; }
 
-    // ── Camera toggle ─────────────────────────────────────────────────────
+    // ── Camera toggle 
     public boolean isCameraEnabled()           { return cameraEnabled; }
     public void    toggleCamera()              { cameraEnabled = !cameraEnabled; }
     public void    setCameraEnabled(boolean v) { this.cameraEnabled = v; }
 
-    // ── Last AI data packet ───────────────────────────────────────────────
+    // ── Last AI data packet 
     public String getLastDataPacket()        { return lastDataPacket; }
     public void   setLastDataPacket(String v){ this.lastDataPacket = v; }
 }

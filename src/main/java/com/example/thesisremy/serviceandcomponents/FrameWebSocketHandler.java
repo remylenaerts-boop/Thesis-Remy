@@ -29,13 +29,14 @@ import java.util.concurrent.atomic.AtomicInteger;
     those 5 seconds the timer is cancelled and the session continues seamlessly —
     frames keep their numbers and nothing is lost. Only if the glasses stay
     disconnected for the full 5 seconds is the video stitched and frames cleared.
+    This solved the problem where videos would be stitched during use.
 
     Annotated video: if pool_detector.py saved annotated frames (with detection
     circles drawn) to annotated/, those are used for the video instead of the raw
     frames so the detection result is visible in the recording.
 
-    Requires ffmpeg — install with: winget install ffmpeg (Windows)
-                                     brew install ffmpeg  (macOS/Linux)
+    Requires ffmpeg install with: winget install ffmpeg (Windows)
+                                  brew install ffmpeg  (macOS/Linux)
 */
 @Component
 public class FrameWebSocketHandler extends BinaryWebSocketHandler {
@@ -54,7 +55,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
 
     private final ServerState serverState;
 
-    // Scheduler used for the delayed stitch — single thread is enough
+    // Scheduler used for the delayed stitch, single thread is enough.
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     // Reference to the pending stitch task so we can cancel it on reconnect
@@ -73,24 +74,24 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         activeSession = session;
 
-        // If a stitch was pending from a previous hiccup, cancel it — session is resuming
+        // If a stitch was pending from a previous hiccup, cancel it then session resumes
         if (pendingStitch != null && !pendingStitch.isDone()) {
             pendingStitch.cancel(false);
-            System.out.println("[WS] Glasses reconnected within timeout — stitch cancelled, session continues.");
+            System.out.println("[WS] Glasses reconnected within timeout, stitch cancelled, session continues.");
         } else {
-            System.out.println("[WS] Glasses connected — session: " + session.getId());
+            System.out.println("[WS] Glasses connected, session: " + session.getId());
         }
     }
 
-    // Each incoming frame is raw JPEG bytes — save it to disk with a numbered filename
+    // Each incoming frame is raw JPEG bytes, save it to disk with a numbered filename
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws IOException {
         // Only save frames when camera capture is explicitly enabled from the dashboard.
-        // When disabled the glasses are also told to stop sending, so this is a safety net.
+        // When disabled, the glasses are also told to stop sending, so this is a safety net.
         if (!serverState.isCameraEnabled()) return;
 
-        byte[] bytes = new byte[message.getPayload().remaining()];
-        message.getPayload().get(bytes);
+        byte[] bytes = new byte[message.getPayload().remaining()]; //First a bytes array is made to the .remaining (amount of data in the message)
+        message.getPayload().get(bytes); //and now the payload is put into the bytes array
 
         String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", frameCounter.getAndIncrement());
         long t0 = System.nanoTime();
@@ -115,7 +116,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
             return;
         }
 
-        System.out.println("[WS] Waiting " + (STITCH_DELAY_MS / 1000) + "s before stitching — reconnect to cancel.");
+        System.out.println("[WS] Waiting " + (STITCH_DELAY_MS / 1000) + "s before stitching, reconnect to cancel.");
 
         pendingStitch = scheduler.schedule(() -> {
             try {
@@ -131,13 +132,13 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         String timestamp  = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String outputPath = VIDEOS_DIR + "video_" + timestamp + ".mp4";
 
-        // Use annotated frames if pool_detector.py produced them — they show the detection circle.
+        // Use annotated frames if pool_detector.py produced them, they show the detection circle.
         // Fall back to raw frames if the detector was not running this session.
         File[] annotatedFrames = new File(ANNOTATED_DIR).listFiles((d, n) -> n.matches("frame_\\d{5}\\.jpg"));
         boolean hasAnnotated   = annotatedFrames != null && annotatedFrames.length > 0;
         String  sourceDir      = hasAnnotated ? ANNOTATED_DIR : FRAMES_DIR;
 
-        System.out.println("[WS] Stitching " + frameCounter.get() + " frames from " + sourceDir + " → " + outputPath);
+        System.out.println("[WS] Stitching " + frameCounter.get() + " frames from " + sourceDir + " --> " + outputPath);
         if (hasAnnotated) System.out.println("[WS] Using annotated frames — detection circles will be visible.");
 
         Process process = new ProcessBuilder(
@@ -163,8 +164,8 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
 
     /*
         Tries to find ffmpeg in two places:
-          1. The system PATH — works on any OS where ffmpeg was installed normally
-          2. The winget shortcut folder — Windows users who ran "winget install ffmpeg"
+          1. The system PATH, works on any OS where ffmpeg was installed normally
+          2. The winget shortcut folder, Windows users who ran "winget install ffmpeg"
              have ffmpeg here automatically, no PATH setup needed
     */
     private String resolveFfmpeg() {

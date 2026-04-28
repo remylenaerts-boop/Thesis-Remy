@@ -14,8 +14,7 @@ import org.springframework.web.client.RestTemplate;
       - Error handling: if the Python program is unreachable, the exception is caught and logged.
         The scheduler keeps running so it recovers automatically when Python comes back up.
 
-    The streaming toggle is also respected — polling can run while streaming is paused,
-    keeping the deduplication state up to date without sending anything to the glasses.
+    Polling can run while streaming is paused, keeping the deduplication state up to date without sending anything to the glasses.
 */
 @Component
 public class DataGetter {
@@ -39,7 +38,7 @@ public class DataGetter {
     @Scheduled(fixedRate = 1000) // milliseconds
     public void pollAndBroadcast() {
 
-        // Polling toggle — stop fetching from Python entirely when disabled
+        // Polling toggle --> stop fetching from Python entirely when disabled.
         if (!serverState.isPollingEnabled()) return;
 
         try {
@@ -53,7 +52,7 @@ public class DataGetter {
                 lastJson = json;
                 serverState.setLastDataPacket(json); // expose to dashboard overview
 
-                // Streaming toggle — fetch and deduplicate, but don't send to glasses when disabled
+                // Streaming toggle --> fetch and deduplicate, but don't send to glasses when disabled
                 if (serverState.isStreamingEnabled()) {
                     long t1 = System.nanoTime();
                     broadcast.broadcast(json);

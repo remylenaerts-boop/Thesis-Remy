@@ -272,6 +272,26 @@
         border-radius: 8px;
         color: var(--sidebar-ink);
         font-size: 12px;
+        cursor: pointer;
+        transition: background .15s;
+        border: 1px solid transparent;
+    }
+    .user-chip:hover { background: var(--sidebar-hover); border-color: var(--sidebar-border); }
+    .user-chip:hover .user-chip-switch { opacity: 1; }
+    .user-chip-text { min-width: 0; flex: 1; }
+    .user-chip-switch {
+        margin-left: auto;
+        flex-shrink: 0;
+        opacity: 0.45;
+        transition: opacity .15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .user-chip-switch svg {
+        width: 14px; height: 14px;
+        stroke: currentColor; fill: none;
+        stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
     }
     .user-avatar {
         width: 28px; height: 28px; border-radius: 50%;
@@ -279,9 +299,16 @@
         display: flex; align-items: center; justify-content: center;
         font-weight: 700; font-size: 11px; color: #fff;
         flex-shrink: 0;
+        transition: background .2s;
+    }
+    html[data-role="developer"] .user-avatar {
+        background: linear-gradient(135deg, oklch(0.65 0.15 30), oklch(0.55 0.18 350));
     }
     .user-chip b { color: #fff; font-weight: 600; font-size: 12.5px; letter-spacing: -0.005em; }
     .user-chip small { display: block; color: var(--sidebar-ink-dim); font-size: 10.5px; }
+
+    /* Hide developer-only nav when the user profile is active */
+    html[data-role="user"] [data-dev-only] { display: none !important; }
 
     /* ═══ MAIN ═══ */
     .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
@@ -1092,18 +1119,18 @@
             <span class="nav-badge">demo</span>
         </div>
 
-        <div class="nav-section">Features</div>
-        <div class="nav-item" data-page="camera" onclick="showPage('camera', this)">
+        <div class="nav-section" data-dev-only>Features</div>
+        <div class="nav-item" data-page="camera" data-dev-only onclick="showPage('camera', this)">
             <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12" rx="2"></rect><path d="M17 10l4-2v8l-4-2z"></path></svg></span>
             Camera &amp; Detection
         </div>
-        <div class="nav-item" data-page="server-settings" onclick="showPage('server-settings', this)">
+        <div class="nav-item" data-page="server-settings" data-dev-only onclick="showPage('server-settings', this)">
             <span class="nav-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
             Camera Settings
         </div>
 
-        <div class="nav-section">Configuration</div>
-        <div class="nav-item" data-page="app-settings" onclick="showPage('app-settings', this)">
+        <div class="nav-section" data-dev-only>Configuration</div>
+        <div class="nav-item" data-page="app-settings" data-dev-only onclick="showPage('app-settings', this)">
             <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2.5"></rect><path d="M11 18h2"></path></svg></span>
             App Settings
         </div>
@@ -1120,11 +1147,14 @@
                 Dark
             </button>
         </div>
-        <div class="user-chip">
-            <div class="user-avatar">RL</div>
-            <div>
-                <b>Remy Lenaerts</b>
-                <small>Session operator</small>
+        <div class="user-chip" id="userChip" onclick="toggleRole()" title="Switch profile">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <div class="user-chip-text">
+                <b id="userName">User</b>
+                <small id="userRole">Session operator</small>
+            </div>
+            <div class="user-chip-switch">
+                <svg viewBox="0 0 24 24"><path d="M7 10l5-5 5 5"></path><path d="M7 14l5 5 5-5"></path></svg>
             </div>
         </div>
     </div>
@@ -1628,6 +1658,44 @@
         try { n = localStorage.getItem('ar-page') || 'overview'; } catch {}
         if (!pages[n]) n = 'overview';
         showPage(n);
+    })();
+
+    // ── Profile / Role (user vs developer) ───────────────
+    const DEV_ONLY_PAGES = ['camera', 'server-settings', 'app-settings'];
+    const ROLE_META = {
+        user:      { name: 'User',      avatar: 'U',   sub: 'Session operator' },
+        developer: { name: 'Developer', avatar: 'DEV', sub: 'Session operator · full access' }
+    };
+
+    function setRole(role) {
+        if (!ROLE_META[role]) role = 'user';
+        document.documentElement.setAttribute('data-role', role);
+        const m = ROLE_META[role];
+        const nm = document.getElementById('userName');
+        const rl = document.getElementById('userRole');
+        const av = document.getElementById('userAvatar');
+        if (nm) nm.textContent = m.name;
+        if (rl) rl.textContent = m.sub;
+        if (av) av.textContent = m.avatar;
+        try { localStorage.setItem('ar-role', role); } catch {}
+
+        // If the current page isn't accessible in this role, jump to overview.
+        if (role === 'user') {
+            let current = 'overview';
+            try { current = localStorage.getItem('ar-page') || 'overview'; } catch {}
+            if (DEV_ONLY_PAGES.includes(current)) showPage('overview');
+        }
+    }
+
+    function toggleRole() {
+        const cur = document.documentElement.getAttribute('data-role') || 'user';
+        setRole(cur === 'user' ? 'developer' : 'user');
+    }
+
+    (function initRole() {
+        let r = 'user';
+        try { r = localStorage.getItem('ar-role') || 'user'; } catch {}
+        setRole(r);
     })();
 
     // ── Session (Go Live: polling + streaming) ────────
