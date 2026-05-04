@@ -27,9 +27,6 @@ public class DataGetter {
 
     private String lastJson = null;
 
-    private final LatencyStats pollStats      = new LatencyStats("poll",      100);
-    private final LatencyStats broadcastStats = new LatencyStats("broadcast", 100);
-
     public DataGetter(Broadcast broadcast, ServerState serverState) {
         this.broadcast   = broadcast;
         this.serverState = serverState;
@@ -42,11 +39,7 @@ public class DataGetter {
         if (!serverState.isPollingEnabled()) return;
 
         try {
-            long t0   = System.nanoTime();
             String json = restTemplate.getForObject(SOURCE_URL, String.class);
-            long fetchMs = (System.nanoTime() - t0) / 1_000_000;
-            System.out.printf("[LATENCY][poll] pythonFetch=%dms%n", fetchMs);
-            pollStats.record(fetchMs);
 
             if (json != null && !json.equals(lastJson)) {
                 lastJson = json;
@@ -54,11 +47,7 @@ public class DataGetter {
 
                 // Streaming toggle --> fetch and deduplicate, but don't send to glasses when disabled
                 if (serverState.isStreamingEnabled()) {
-                    long t1 = System.nanoTime();
                     broadcast.broadcast(json);
-                    long broadcastMs = (System.nanoTime() - t1) / 1_000_000;
-                    System.out.printf("[LATENCY][broadcast] sseToClients=%dms%n", broadcastMs);
-                    broadcastStats.record(broadcastMs);
                 }
             }
         } catch (RestClientException e) {

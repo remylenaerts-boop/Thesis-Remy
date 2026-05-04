@@ -15,17 +15,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServerState {
 
-    // Shared constant — single place to update if the Python AI port changes
+    // Shared constant: single place to update if the Python AI port changes
     public static final String PYTHON_AI_URL = "http://127.0.0.1:8060/api/v1/live";
 
     // ── Runtime toggles 
 
     // When false, DataGetter stops polling the Python AI entirely
-    // Starts as false — enable from the dashboard once everything is connected and configured
+    // Starts as false: enable from the dashboard once everything is connected and configured
     private volatile boolean pollingEnabled   = false;
 
-    // When false, fetched data is not broadcast — polling still happens so we stay in sync
-    // Starts as false — enable from the dashboard once everything is connected and configured
+    // When false, fetched data is not broadcast: polling still happens so we stay in sync
+    // Starts as false: enable from the dashboard once everything is connected and configured
     private volatile boolean streamingEnabled = false;
 
     // ── Detector settings 
@@ -39,14 +39,14 @@ public class ServerState {
     private volatile double minCircularity      = 0.62; // 0.0-1.0, 1.0 = perfect circle
     private volatile int    videoFramerate      = 30;   // fps used when stitching MP4
 
-    // ── Camera capture (proof-of-concept feature — off by default) 
+    // ── Camera capture (proof-of-concept feature: off by default) 
     // When false: frames from the glasses are discarded, pool detector is idle,
     // and the glasses are told to stop their camera via a "cameraControl" SSE event.
     private volatile boolean cameraEnabled = false;
 
     // ── Android app settings (fetched by the app on launch via GET /api/app-settings) ──
 
-    // Gauge display ranges — set these to the realistic operating ranges for the welder
+    // Gauge display ranges: set these to the realistic operating ranges for the welder
     private volatile double voltageMin    =  0.0;   // V
     private volatile double voltageMax    =  40.0;   // V
     private volatile double amperageMin   =   0.0;   // A

@@ -29,13 +29,13 @@ import java.util.Map;
     Info about the @... annotations used here can also be found in the ControllerClass
 
     API overview:
-      GET  /dashboard             — redirects to the static HTML page
-      GET  /api/status            — current server status as JSON
-      POST /api/toggle/polling    — enable / disable DataGetter polling
-      POST /api/toggle/streaming  — enable / disable SSE broadcast to glasses
-      GET  /api/videos            — list of recorded MP4 files in videos/
-      GET  /api/settings          — current detector settings (also read by pool_detector.py)
-      POST /api/settings          — update detector settings from the dashboard
+      GET  /dashboard            : redirects to the static HTML page
+      GET  /api/status           : current server status as JSON
+      POST /api/toggle/polling   : enable / disable DataGetter polling
+      POST /api/toggle/streaming : enable / disable SSE broadcast to glasses
+      GET  /api/videos           : list of recorded MP4 files in videos/
+      GET  /api/settings         : current detector settings (also read by pool_detector.py)
+      POST /api/settings         : update detector settings from the dashboard
 */
 @RestController
 public class DashboardController {
@@ -81,7 +81,7 @@ public class DashboardController {
         ));
     }
 
-    // Checks whether the Python AI program is reachable — used for the status panel
+    // Checks whether the Python AI program is reachable: used for the status panel
     private boolean checkPythonAi() {
         try {
             restTemplate.getForObject(PYTHON_AI_URL, String.class);

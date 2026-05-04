@@ -1,17 +1,17 @@
 ================================================================================
-  AR WELDING GUIDANCE SYSTEM — Complete Technical Documentation
-  KU Leuven Master's Thesis — Remy Lenaerts
+  AR WELDING GUIDANCE SYSTEM: Complete Technical Documentation
+  KU Leuven Master's Thesis: Remy Lenaerts
   Last updated: April 2026
 ================================================================================
 
-This document covers the full system — what it does, why each part was built the
+This document covers the full system: what it does, why each part was built the
 way it was, and how all the components fit together. It is written for two
 audiences: the first half of each chapter is written plainly so a non-technical
 reader can follow the reasoning; the second half goes into the technical detail
 needed to understand, maintain, or extend the code.
 
 ================================================================================
-CHAPTER 1 — WHAT THIS SYSTEM DOES (Big Picture)
+CHAPTER 1: WHAT THIS SYSTEM DOES (Big Picture)
 ================================================================================
 
 Overview
@@ -27,30 +27,30 @@ welding process without having to look away from the work. The glasses show:
 The goal is to help a welder maintain correct parameters without stopping to read
 gauges, and to learn from the visual overlay where their technique drifts.
 
-The AR glasses used are Epson Moverio BT-300 — a commercial Android-based
+The AR glasses used are Epson Moverio BT-300: a commercial Android-based
 heads-up display with a see-through screen. The welder can see both the real
 world and the digital overlay simultaneously.
 
 System Components at a Glance
 ------------------------------
-  1. Python AI program     — reads welding parameters from sensor hardware,
+  1. Python AI program    : reads welding parameters from sensor hardware,
                              runs on a laptop/PC connected to the welder.
                              Exposes the data at http://127.0.0.1:8060
 
   2. Java Spring Boot server (THIS CODEBASE)
-                           — the central hub. Receives data from Python,
+                          : the central hub. Receives data from Python,
                              decides what to forward and when, serves the
                              dashboard, and keeps the glasses connected.
                              Runs at http://localhost:9999
 
-  3. Epson BT-300 glasses  — Android device. Connects to the server over Wi-Fi,
+  3. Epson BT-300 glasses : Android device. Connects to the server over Wi-Fi,
                              displays live welding data and detection overlays.
 
-  4. OpenCV pool detector  — Python script (pool_detector.py) that watches the
+  4. OpenCV pool detector : Python script (pool_detector.py) that watches the
                              camera feed for the bright glow of the weld pool and
                              reports its position back to the server.
 
-  5. Web dashboard         — a browser page at http://localhost:9999/dashboard
+  5. Web dashboard        : a browser page at http://localhost:9999/dashboard
                              where the operator controls everything: enables/disables
                              data streaming, the camera, and pool tracking; adjusts
                              detection settings; and reviews recorded sessions.
@@ -66,12 +66,12 @@ Data Flow
                      Java server  →  AR glasses (SSE pooldetection event)
 
 ================================================================================
-CHAPTER 2 — ARCHITECTURE OVERVIEW
+CHAPTER 2: ARCHITECTURE OVERVIEW
 ================================================================================
 
 Why a Central Server?
 ---------------------
-The AR glasses are a constrained Android device — they are not powerful enough to
+The AR glasses are a constrained Android device: they are not powerful enough to
 run an AI model or a full sensor pipeline. The laptop/PC connected to the welder
 does the heavy computation, and the server acts as the translation layer between
 that computation and the glasses.
@@ -85,22 +85,24 @@ Package Structure
 The Java code is split into two packages:
 
   com.example.thesisremy.controller
-    - ControllerClass.java    — the main SSE stream, pool detection intake
-    - DashboardController.java — dashboard page and all /api/* endpoints
+    - ControllerClass.java   : the main SSE stream, pool detection intake
+    - DashboardController.java: dashboard page and all /api/* endpoints
 
   com.example.thesisremy.serviceandcomponents
-    - ServerState.java        — single source of truth for all runtime flags
-    - Broadcast.java          — manages SSE connections and pushes data
-    - DataGetter.java         — polls Python AI every second
-    - FrameWebSocketHandler   — receives camera frames over WebSocket
-    - DnsConfig.java          — mDNS registration so glasses find the server by name
-    - WebSocketConfig.java    — WebSocket endpoint configuration
-    - StartupLogger.java      — prints startup summary to the console
+    - ServerState.java         : single source of truth for all runtime flags
+    - Broadcast.java           : manages SSE connections and pushes data
+    - DataGetter.java          : polls Python AI every second
+    - FrameWebSocketHandler    : receives camera frames over WebSocket
+    - PoolDetectorLauncher.java: auto-starts pool_detector.py as a subprocess
+    - LatencyStats.java        : records latency measurements for thesis benchmarking
+    - DnsConfig.java           : mDNS registration so glasses find the server by name
+    - WebSocketConfig.java     : WebSocket endpoint configuration
+    - StartupLogger.java       : prints startup summary to the console
 
-  ThesisRemyApplication.java  — Spring Boot entry point
+  ThesisRemyApplication.java   : Spring Boot entry point
 
 ================================================================================
-CHAPTER 3 — TECHNOLOGY CHOICES AND WHY
+CHAPTER 3: TECHNOLOGY CHOICES AND WHY
 ================================================================================
 
 Why Spring Boot (Java)?
@@ -110,7 +112,7 @@ the low-level networking, thread management, and request routing automatically,
 letting the code focus on the business logic rather than socket management.
 
 For this thesis the key reasons were:
-  - Built-in SSE support via SseEmitter — no extra libraries needed
+  - Built-in SSE support via SseEmitter: no extra libraries needed
   - Built-in WebSocket support via BinaryWebSocketHandler
   - The @Scheduled annotation makes polling loops trivial to set up
   - Graduates of the faculty will recognize it if they continue this work
@@ -123,7 +125,7 @@ The difference is direction:
   WebSocket = two-way (server and client can both send at any time)
   SSE       = one-way  (server sends, client only listens)
 
-For delivering welding data to the glasses, one-way is exactly what we need —
+For delivering welding data to the glasses, one-way is exactly what we need -
 the glasses are consumers of data, not producers. SSE is simpler, works over
 plain HTTP (no upgrade handshake), and reconnects automatically if the connection
 drops. SSE is natively supported in Android via OkHttp's EventSource library.
@@ -134,12 +136,12 @@ does not support client-to-server binary data.
 
 Why Named SSE Events?
 ---------------------
-SSE supports named events — a client can subscribe to specific event types and
+SSE supports named events: a client can subscribe to specific event types and
 ignore others. This system uses three named events on a single connection:
 
-  "welddata"      — welding parameters from the Python AI
-  "pooldetection" — weld pool coordinates from the OpenCV detector
-  "cameraControl" — server command to start or stop the camera
+  "welddata"     : welding parameters from the Python AI
+  "pooldetection": weld pool coordinates from the OpenCV detector
+  "cameraControl": server command to start or stop the camera
 
 Using a single connection with named events means the glasses do not need to
 manage multiple connections. Each data type is cleanly separated on the same
@@ -154,7 +156,7 @@ it would break every session.
 mDNS (multicast DNS) solves this by letting the server announce itself by a fixed
 human-readable name ("sse-server.local") on the local network. The glasses always
 connect to that name, and the DNS resolution figures out the current IP address
-automatically — the same way your laptop finds the printer without knowing its IP.
+automatically: the same way your laptop finds the printer without knowing its IP.
 
 The JmDNS library (Java Multicast DNS) handles the announcement.
 Note: on Windows, the Windows Firewall must allow inbound UDP on port 5353 for
@@ -164,8 +166,8 @@ Why Python for the AI and Pool Detector?
 -----------------------------------------
 The AI model that reads sensor values was pre-existing when this project started.
 It was already written in Python, exposing its data at http://127.0.0.1:8060.
-Python is also the natural home for OpenCV — the standard computer vision library
-used for the pool detector — because OpenCV has the most complete Python bindings.
+Python is also the natural home for OpenCV: the standard computer vision library
+used for the pool detector: because OpenCV has the most complete Python bindings.
 
 The Java server and Python scripts communicate over localhost HTTP: clean, simple,
 and language-agnostic. If the AI is ever rewritten in another language, the
@@ -175,7 +177,7 @@ Why OpenCV for Pool Detection?
 -------------------------------
 OpenCV (Open Source Computer Vision Library) is the industry standard for image
 processing tasks like this. The weld pool detection is a brightness-based blob
-detector — the weld pool (and the flashlight stand-in used in testing) is the
+detector: the weld pool (and the flashlight stand-in used in testing) is the
 brightest region in the frame. OpenCV provides all the needed operations
 (Gaussian blur, thresholding, morphological operations, contour finding) as
 efficient, well-tested C++ functions callable from Python.
@@ -189,7 +191,7 @@ is the standard tool for this on every platform, handles codec selection
 automatically, and produces a video that plays in any browser or media player.
 
 ================================================================================
-CHAPTER 4 — SERVER STATE (ServerState.java)
+CHAPTER 4: SERVER STATE (ServerState.java)
 ================================================================================
 
 The Problem: Shared Mutable State
@@ -202,7 +204,7 @@ The server runs multiple things at the same time:
 
 These threads all need to read and change the same flags (is polling enabled?
 is the camera on?). In Java, sharing data between threads without care leads to
-race conditions — where two threads read or write at the same time and produce
+race conditions: where two threads read or write at the same time and produce
 unpredictable results.
 
 The Solution: volatile
@@ -214,31 +216,28 @@ notice the change.
 
 Fields and Their Purpose
 -------------------------
-Runtime toggles (all start as false — must be enabled from the dashboard):
-  pollingEnabled   — when false, DataGetter stops asking Python for data entirely
-  streamingEnabled — when false, data is fetched and deduplicated but not sent to glasses
-  cameraEnabled    — when false, incoming camera frames are discarded and the glasses
+Runtime toggles (all start as false: must be enabled from the dashboard):
+  pollingEnabled  : when false, DataGetter stops asking Python for data entirely
+  streamingEnabled: when false, data is fetched and deduplicated but not sent to glasses
+  cameraEnabled   : when false, incoming camera frames are discarded and the glasses
                      are told to stop their camera (via a "cameraControl" SSE event)
-  trackingEnabled  — when false, pool detection results are accepted but not forwarded
 
 Detector settings (read by pool_detector.py via GET /api/settings):
-  brightnessThreshold — pixels brighter than this value are treated as the weld pool
-  blurKernel          — Gaussian blur radius before thresholding
-  morphKernel         — morphological erosion/dilation kernel size
-  minBlobArea         — minimum blob area; smaller blobs are noise
-  minCircularity      — blobs less round than this are rejected
-  videoFramerate      — fps for the stitched MP4 recording
+  brightnessThreshold: pixels brighter than this value are treated as the weld pool
+  blurKernel         : Gaussian blur radius before thresholding
+  morphKernel        : morphological erosion/dilation kernel size
+  minBlobArea        : minimum blob area; smaller blobs are noise
+  minCircularity     : blobs less round than this are rejected
+  videoFramerate     : fps for the stitched MP4 recording
 
 Android app settings (fetched by the app on launch via GET /api/app-settings):
   voltageMin/Max, amperageMin/Max, gasFlowMin/Max
-                      — gauge display ranges on the AR overlay
-  showPoolDetection   — whether to draw the detection circle on the glasses screen
-  overlayOpacity      — transparency of the AR overlay (0.0 = invisible, 1.0 = opaque)
-  heatbarDuration     — how many seconds of porosity history the heatbar shows
+                     : gauge display ranges on the AR overlay
+  heatbarDuration    : how many seconds of porosity history the heatbar shows
 
 Design Decision: Why lastDataPacket is initialized to "" not null
 ------------------------------------------------------------------
-Java's Map.of() does not allow null values — passing null throws a
+Java's Map.of() does not allow null values: passing null throws a
 NullPointerException at runtime, not at compile time. When lastDataPacket was
 null (before a first poll), the /api/status endpoint crashed with HTTP 500 on
 every 2-second dashboard refresh. This silently broke the toggle buttons because
@@ -248,8 +247,13 @@ The fix: initialize lastDataPacket to an empty string "". The dashboard JavaScri
 guards against empty strings with `if (!raw) return;`, so it ignores the empty
 value gracefully.
 
+Note: lastPoolResult is initialized to "-" (a dash) rather than an empty string.
+This is intentional: the dashboard displays this value directly in the UI as a
+label, and "-" reads naturally as "no result yet", whereas an empty string would
+leave a blank field that could confuse the operator.
+
 ================================================================================
-CHAPTER 5 — SSE BROADCAST (Broadcast.java)
+CHAPTER 5: SSE BROADCAST (Broadcast.java)
 ================================================================================
 
 What It Does
@@ -269,7 +273,7 @@ this would cause a ConcurrentModificationException and crash the broadcast.
 
 CopyOnWriteArrayList handles concurrent access by making a fresh copy of the
 internal array on every write. Reads (loops) never see a partially-modified list.
-The trade-off is that writes are slightly more expensive — acceptable here because
+The trade-off is that writes are slightly more expensive: acceptable here because
 connections are infrequent and broadcasts are the frequent operation.
 
 Ghost Connection Problem and Heartbeat Solution
@@ -282,7 +286,7 @@ dead emitter is still there alongside the new one.
 The heartbeat is the fix: every 30 seconds a scheduled method sends a small SSE
 comment (a line starting with ':') to every emitter. Comments carry no data and
 are ignored by the client. But they cause an IOException on any connection that has
-silently died — and on IOException, the dead emitter is removed from the list.
+silently died: and on IOException, the dead emitter is removed from the list.
 
 This means that at worst, a ghost connection persists for up to 30 seconds after
 a crash. In practice, the next broadcast attempt also throws IOException and clears
@@ -290,17 +294,17 @@ it immediately.
 
 Named vs Unnamed Events
 -----------------------
-broadcast()       — sends data as an unnamed SSE event. The Android EventSource
+broadcast()      : sends data as an unnamed SSE event. The Android EventSource
                     listener receives it in onMessage(). Used for weld data.
                     Unchanged from the original app so no Android changes are needed.
 
-broadcastNamed()  — sends data with an explicit event name. The Android app can
+broadcastNamed() : sends data with an explicit event name. The Android app can
                     register a listener for a specific name. Used for:
-                    "pooldetection" — weld pool coordinates
-                    "cameraControl" — camera on/off command
+                    "pooldetection": weld pool coordinates
+                    "cameraControl": camera on/off command
 
 ================================================================================
-CHAPTER 6 — DATA GETTER (DataGetter.java)
+CHAPTER 6: DATA GETTER (DataGetter.java)
 ================================================================================
 
 What It Does
@@ -335,10 +339,10 @@ Error Handling
 --------------
 If Python is not running or not reachable, RestTemplate throws a
 RestClientException. This is caught and logged, and the scheduler keeps running.
-The system recovers automatically when Python comes back up — no restart needed.
+The system recovers automatically when Python comes back up: no restart needed.
 
 ================================================================================
-CHAPTER 7 — POOL DETECTOR (pool_detector.py)
+CHAPTER 7: POOL DETECTOR (pool_detector.py)
 ================================================================================
 
 What It Does
@@ -348,7 +352,7 @@ Its position, size, and brightness are indicators of weld quality. The pool
 detector watches the camera feed from the glasses and finds the weld pool in
 each frame using computer vision.
 
-The result — position normalized to 0.0–1.0 in both X and Y — is sent to the
+The result: position normalized to 0.0-1.0 in both X and Y: is sent to the
 Java server, which forwards it to the glasses. The glasses then draw a circle
 on the AR overlay at the correct position.
 
@@ -356,56 +360,56 @@ Detection Pipeline (Step by Step)
 -----------------------------------
 Each frame goes through this sequence:
 
-  Step 1 — Gaussian Blur
+  Step 1: Gaussian Blur
     The raw camera image contains JPEG compression artifacts and fine noise.
     Gaussian blur replaces each pixel with a weighted average of its neighbors,
     smoothing out fine detail. This prevents small noise specks from being
     mistaken for the weld pool.
-    Parameter: BLUR_KERNEL (must be an odd number — e.g. 5, 7, 9)
+    Parameter: BLUR_KERNEL (must be an odd number: e.g. 5, 7, 9)
 
-  Step 2 — Brightness Threshold
+  Step 2: Brightness Threshold
     After blurring, every pixel brighter than BRIGHTNESS_THRESHOLD is set to
     white; everything else is set to black. The result is a binary image where
     white pixels mark the brightest region (the weld pool or test flashlight).
-    Parameter: BRIGHTNESS_THRESHOLD (0–255, typically 180–220 for welding)
+    Parameter: BRIGHTNESS_THRESHOLD (0-255, typically 180-220 for welding)
 
-  Step 3 — Morphological Opening (Erode → Dilate)
+  Step 3: Morphological Opening (Erode → Dilate)
     The binary image may still contain small isolated white specks outside the
     main blob. Opening removes them: erosion shrinks all white regions (small
     specks disappear entirely), then dilation restores the size of the remaining
     large blob.
     Parameter: MORPH_KERNEL (size of the erosion/dilation kernel)
 
-  Step 4 — Morphological Closing (Dilate → Erode)
+  Step 4: Morphological Closing (Dilate → Erode)
     Inside the weld pool, uneven brightness or JPEG artifacts can create small
     black holes in the white blob. Closing fills them: dilation expands the blob
     to cover any holes, then erosion restores the outer boundary.
 
-  Step 5 — Find Contours
+  Step 5: Find Contours
     OpenCV's findContours() locates the boundaries of all white regions in the
-    cleaned binary image. Each boundary is a contour — a list of edge points.
+    cleaned binary image. Each boundary is a contour: a list of edge points.
 
-  Step 6 — Area and Circularity Filter
+  Step 6: Area and Circularity Filter
     For each contour:
-      - If its area is smaller than MIN_BLOB_AREA, it is noise — skip it.
+      - If its area is smaller than MIN_BLOB_AREA, it is noise: skip it.
       - Circularity = 4π × area / perimeter² (equals 1.0 for a perfect circle).
-        If circularity < MIN_CIRCULARITY, the shape is not round — skip it.
+        If circularity < MIN_CIRCULARITY, the shape is not round: skip it.
     Only contours that pass both filters are candidates.
-    Parameters: MIN_BLOB_AREA (pixels), MIN_CIRCULARITY (0.0–1.0)
+    Parameters: MIN_BLOB_AREA (pixels), MIN_CIRCULARITY (0.0-1.0)
 
-  Step 7 — Select Largest Candidate
+  Step 7: Select Largest Candidate
     If multiple round blobs pass the filter, the largest by area is selected.
     The assumption: the weld pool is the largest bright circular object in frame.
     Smaller candidates are likely reflections or sparks.
 
-  Step 8 — Normalize and Return
+  Step 8: Normalize and Return
     The center (cx, cy) and radius are normalized to the image dimensions so the
     result is resolution-independent. The glasses can apply the result to any
     screen size.
 
 The Annotated Frame
 --------------------
-For every processed frame — whether a pool was detected or not — the detector
+For every processed frame: whether a pool was detected or not: the detector
 saves a copy of the frame to the annotated/ folder:
   - Pool detected: green circle at the pool boundary + red dot at the center
   - No pool:       raw color frame, unchanged
@@ -420,11 +424,10 @@ Design Decision: TRACKING_ENABLED removed
 ------------------------------------------
 An earlier version of the code had a module-level TRACKING_ENABLED = True variable
 that could be set to False to pause detection. This was never wired up to any
-external control — it was a leftover development convenience. The equivalent
-function is already handled by the Java server's trackingEnabled flag: when
-tracking is disabled, Java accepts the POST from the detector but does not forward
-it to the glasses. Having an unreachable dead variable in Python was misleading.
-It was removed.
+external control: it was a leftover development convenience. Having an unreachable
+dead variable in Python was misleading. It was removed. Pool detection results
+posted to /pool are now always stored and forwarded to the glasses; the camera
+being enabled is the effective gate for whether detection is active at all.
 
 Settings Refresh from Dashboard
 ---------------------------------
@@ -443,14 +446,14 @@ bright weld pool or flashlight) without needing physical hardware. It is used to
   - Stitch a test video via ffmpeg and confirm the output is playable
 
 ================================================================================
-CHAPTER 8 — WEBSOCKET FRAME HANDLER (FrameWebSocketHandler.java)
+CHAPTER 8: WEBSOCKET FRAME HANDLER (FrameWebSocketHandler.java)
 ================================================================================
 
 What It Does
 ------------
 When the camera feature is enabled, the glasses send their camera feed to the
 server as a stream of individual JPEG images over a WebSocket connection. Each
-incoming frame is a binary message — raw bytes representing one JPEG image.
+incoming frame is a binary message: raw bytes representing one JPEG image.
 
 The handler saves each frame to disk with a sequential filename
 (frame_00000.jpg, frame_00001.jpg, ...) in the frames/ folder. The pool detector
@@ -458,7 +461,7 @@ The handler saves each frame to disk with a sequential filename
 
 Why WebSocket for Frames?
 --------------------------
-Camera frames are binary data — not text, not JSON. WebSocket is designed for
+Camera frames are binary data: not text, not JSON. WebSocket is designed for
 exactly this: a persistent bidirectional channel that efficiently carries both
 text and binary data. HTTP would require a new connection for every frame, which
 has significant overhead at 30fps. WebSocket keeps one connection open and the
@@ -473,7 +476,7 @@ cameraEnabled check in the frame handler is a fallback: if frames arrive anyway
 (e.g. the command was delayed), they are silently discarded instead of filling
 up the disk.
 
-Wi-Fi Hiccup Handling — The 5-Second Delay
+Wi-Fi Hiccup Handling: The 5-Second Delay
 -------------------------------------------
 When the glasses disconnect from the WebSocket, the first instinct would be to
 immediately stitch the frames into a video. But Wi-Fi connections drop and
@@ -483,7 +486,7 @@ instead of one continuous session recording.
 
 The solution: a 5-second timer. On disconnect, a delayed task is scheduled to
 run stitchAndClean() after 5 seconds. If the glasses reconnect within those 5
-seconds, the timer is cancelled and the session continues seamlessly — frames
+seconds, the timer is cancelled and the session continues seamlessly: frames
 keep their sequential numbers and nothing is lost.
 
 Only if the glasses stay disconnected for the full 5 seconds does the video
@@ -497,7 +500,7 @@ final recording shows the detection circles drawn by pool_detector.py, making
 it possible to review where the weld pool was tracked throughout the session.
 
 If the pool detector was not running (annotated/ is empty), the raw frames are
-used — the video is still produced, just without detection overlays.
+used: the video is still produced, just without detection overlays.
 
 Buffer Size
 -----------
@@ -506,7 +509,7 @@ raises the buffer to 512 KB. A JPEG frame from the BT-300 camera at typical
 quality settings is well under 512 KB, so this gives comfortable headroom.
 
 ================================================================================
-CHAPTER 9 — DASHBOARD (DashboardController.java + dashboard.html)
+CHAPTER 9: DASHBOARD (DashboardController.java + dashboard.html)
 ================================================================================
 
 What the Dashboard Does
@@ -533,7 +536,6 @@ Page Structure
 
   Camera & Detection page (developer-only)
     - Camera toggle (disabled by default, with a notice explaining it is a POC)
-    - Pool tracking toggle
     - Frame counter and WebSocket connection status
     - Recorded video list with playback
 
@@ -577,13 +579,13 @@ automatically jumps to Overview so they are not stranded on a hidden page.
 
 The role state is held in a single HTML attribute (data-role on the <html>
 element) and developer-only sections/items are tagged with data-dev-only.
-A single CSS rule hides them when data-role="user" — no per-component
+A single CSS rule hides them when data-role="user": no per-component
 conditionals needed.
 
 Design Decision: Camera as Background POC
 ------------------------------------------
-The camera capture feature — sending frames from the glasses to the server for
-recording — is a proof-of-concept. It requires a stable Wi-Fi connection, adds
+The camera capture feature: sending frames from the glasses to the server for
+recording: is a proof-of-concept. It requires a stable Wi-Fi connection, adds
 load to the glasses, and is not central to the core use case (displaying AI data).
 For these reasons it was intentionally separated from the main session flow:
 
@@ -608,7 +610,7 @@ Design Decision: Remove Wire Speed, Add Gas Flow
 -------------------------------------------------
 The original dashboard referred to "wire speed" as one of the welding parameters.
 The actual sensor channel is shielding gas flow (liters per minute). Shielding
-gas flow is a critical MIG/MAG welding parameter — too low causes porosity (gas
+gas flow is a critical MIG/MAG welding parameter: too low causes porosity (gas
 bubbles in the weld), too high wastes gas. The field was renamed to gasFlow across
 the entire codebase.
 
@@ -631,7 +633,7 @@ Both flags exist so the operator has fine-grained control:
     the normal case.
 
 ================================================================================
-CHAPTER 10 — DNS AND NETWORK (DnsConfig.java, WebSocketConfig.java)
+CHAPTER 10: DNS AND NETWORK (DnsConfig.java, WebSocketConfig.java)
 ================================================================================
 
 mDNS Registration
@@ -647,7 +649,7 @@ From this point on, any device on the same Wi-Fi network can reach the server at
 sse-server.local:9999 regardless of the current IP address of the laptop.
 
 The Android app is configured to connect to sse-server.local:9999/stream. Because
-the name is fixed, sessions are reproducible — no configuration changes needed
+the name is fixed, sessions are reproducible: no configuration changes needed
 between sessions even if the laptop gets a new IP from the router.
 
 Windows Firewall Note
@@ -661,12 +663,12 @@ WebSocket Buffer
 ----------------
 WebSocketConfig registers FrameWebSocketHandler on the /frames path and raises
 the binary message buffer to 512 KB. The glasses encode camera frames as JPEG
-before sending — JPEG compresses well, but a full-resolution frame at typical
+before sending: JPEG compresses well, but a full-resolution frame at typical
 quality settings can still exceed Spring's default buffer size. 512 KB gives
 enough headroom while staying well below memory limits.
 
 ================================================================================
-CHAPTER 11 — CAMERA FEATURE OVERVIEW (Proof of Concept)
+CHAPTER 11: CAMERA FEATURE OVERVIEW (Proof of Concept)
 ================================================================================
 
 End-to-End Flow
@@ -675,7 +677,7 @@ End-to-End Flow
   2. Java broadcasts "cameraControl" SSE event: {"enabled": true}
   3. Glasses receive the event, start their Camera2 API capture, open WebSocket
      to ws://sse-server.local:9999/frames
-  4. Glasses send JPEG frames as binary WebSocket messages (typically 15–30 fps)
+  4. Glasses send JPEG frames as binary WebSocket messages (typically 15-30 fps)
   5. FrameWebSocketHandler saves each frame: frames/frame_00000.jpg, etc.
   6. pool_detector.py detects the new frame, processes it, saves annotated copy
      to annotated/, POSTs result to /pool
@@ -698,14 +700,125 @@ addressed before production use:
   - Wi-Fi bandwidth may not be sufficient for reliable 30fps streaming in a
     real workshop environment (interference, distance, obstacles)
   - The pool detector is a brightness-based blob detector optimized for testing
-    with a flashlight — a real weld arc is much brighter and the camera may need
+    with a flashlight: a real weld arc is much brighter and the camera may need
     an IR filter or ND filter to get a usable image
   - The detection circles are drawn on the AR overlay based on the server-reported
     position, but there is latency (camera → server → processing → result → glasses)
     which means the circle position lags behind the real pool position
 
 ================================================================================
-CHAPTER 12 — FULL DESIGN DECISIONS LOG
+CHAPTER 12: POOL DETECTOR LAUNCHER (PoolDetectorLauncher.java)
+================================================================================
+
+What It Does
+------------
+PoolDetectorLauncher automatically starts pool_detector.py as a child process
+the moment the Java server starts up. This removes the manual step of opening a
+separate terminal and running the Python script by hand. When the Java server
+shuts down, the launcher kills the Python process cleanly so nothing is left
+running in the background.
+
+The pool detector's log output (every [Detector] line) is inherited by the Java
+process and appears in the same console, so the operator sees everything in one
+place.
+
+Python Resolution and Automatic Package Installation
+-----------------------------------------------------
+Different operating systems name the Python executable differently ("python" on
+Windows, "python3" on macOS/Linux). The launcher tries both in order:
+
+  1. Check whether "python" exists on the PATH.
+  2. If found, verify that the required packages (cv2, numpy, requests) can be
+     imported.
+  3. If packages are missing, automatically run:
+       pip install -r requirements.txt
+     and re-check. If that succeeds, use this command.
+  4. If "python" is not found or packages still fail, repeat the same steps
+     with "python3".
+  5. If neither command works, log an error and skip: the server continues
+     running without the detector.
+
+This means the first server start after a clean Python installation installs all
+dependencies automatically. Subsequent starts skip the install step because the
+packages are already present.
+
+Lifecycle
+---------
+  On startup:  @Bean ApplicationRunner launches the subprocess
+  On shutdown: @PreDestroy stopDetector() calls process.destroy()
+
+The @PreDestroy hook is called by Spring before the application context closes,
+which covers both normal shutdowns (Ctrl+C, IDE stop button) and
+programmatic exits. If the Java process is killed forcefully (e.g. kill -9),
+the Python subprocess becomes an orphan and must be terminated manually.
+
+Design Decision: Why a subprocess instead of calling Python via HTTP?
+----------------------------------------------------------------------
+The pool detector could have been left as a completely independent process that
+the operator starts and stops manually. The subprocess approach was chosen because:
+  - It reduces the startup checklist from three steps to one
+  - It ensures the detector is always in sync with the server lifecycle
+  - It centralises all log output in one console window
+  - The automatic pip install removes the "works on my machine" problem for
+    reviewers running the thesis project for the first time
+
+
+================================================================================
+CHAPTER 13: LATENCY BENCHMARKING (LatencyStats.java)
+================================================================================
+
+What It Does
+------------
+LatencyStats is a lightweight measurement utility used to collect timing data
+for the thesis benchmarks. It is not visible to the end user: it runs silently
+in the background and writes its results to CSV files.
+
+Three measurement points are instrumented in the system:
+
+  DataGetter           : how long the Python AI takes to answer each poll
+                          (measures round-trip HTTP latency to the AI)
+  Broadcast            : how long it takes to push one SSE event to all glasses
+                          (measures the broadcast delivery time)
+  FrameWebSocketHandler: how long it takes to write one JPEG frame to disk
+                          (measures frame save throughput)
+
+Each measurement point creates its own LatencyStats instance with a name and a
+reporting interval (every N samples).
+
+CSV Output
+----------
+Each instance writes every measurement to its own CSV file at the project root:
+
+  latency_poll.csv      : DataGetter samples
+  latency_broadcast.csv : Broadcast samples
+  latency_frame.csv     : FrameWebSocketHandler samples
+
+Each file is overwritten at server startup so every session produces a fresh
+dataset. The format is two columns: sample number and latency in milliseconds.
+These files can be imported directly into Excel, Python (pandas), or any
+statistics tool for analysis.
+
+Console Summary
+---------------
+Every N samples (configurable per instance), a summary line is printed to the
+console with the following statistics over all samples collected so far:
+
+  avg    : arithmetic mean
+  median : middle value (50th percentile)
+  min    : fastest observed sample
+  max    : slowest observed sample
+  p95    : 95th percentile (only 5% of samples were slower than this)
+  stddev : standard deviation (spread of the measurements)
+
+Example output:
+  [LATENCY-STATS][poll] n=100  avg=4.2ms  median=4ms  min=2ms  max=31ms  p95=9ms  stddev=3.1ms
+
+This makes it possible to monitor latency trends live during a session without
+opening the CSV files.
+
+
+================================================================================
+CHAPTER 14: FULL DESIGN DECISIONS LOG
 ================================================================================
 
 This chapter documents every significant decision made during development,
@@ -765,11 +878,10 @@ with the reasoning at the time.
 
 [D-08] TRACKING_ENABLED dead variable removed from pool_detector.py
   Decision: Remove the module-level TRACKING_ENABLED = True variable.
-  Reason:   It was never set to False from any external control — it was a
-            development remnant. The equivalent function is served by Java's
-            trackingEnabled flag, which actually controls whether detection
-            results are forwarded to the glasses. The Python variable was
-            misleading without serving any purpose.
+  Reason:   It was never set to False from any external control: it was a
+            development remnant. The Python variable was misleading without
+            serving any purpose. See also D-08 (updated) at the end of this
+            chapter for the removal of the corresponding Java-side flag.
 
 [D-09] lastDataPacket initialized to "" not null
   Decision: private volatile String lastDataPacket = "";
@@ -777,7 +889,7 @@ with the reasoning at the time.
             lastDataPacket was null (before the first poll), every /api/status
             call returned HTTP 500. This silently broke the dashboard toggle
             buttons because the JavaScript never received a valid JSON response.
-            Empty string is a safe initial value — the dashboard JavaScript
+            Empty string is a safe initial value: the dashboard JavaScript
             guards with `if (!raw) return;`.
 
 [D-10] Alert thresholds removed entirely
@@ -829,8 +941,38 @@ with the reasoning at the time.
             a client. 10 seconds is short enough to be responsive during
             tuning sessions.
 
+[D-16] pool_detector.py launched automatically as a subprocess (PoolDetectorLauncher)
+  Decision: Start pool_detector.py automatically when the Java server starts,
+            rather than requiring the operator to run it manually in a separate
+            terminal.
+  Reason:   Reduces the startup procedure from three manual steps to one. Ties
+            the detector lifecycle to the server lifecycle so it cannot be left
+            running accidentally after the server stops. Centralises all log
+            output in one console. The automatic pip install step also removes
+            environment setup friction for first-time runners of the project.
+
+[D-17] Latency measurement via LatencyStats, written to CSV
+  Decision: Instrument three points in the system (poll, broadcast, frame write)
+            with a lightweight LatencyStats helper that writes every sample to
+            a CSV file and prints periodic summaries to the console.
+  Reason:   The thesis requires quantitative latency data to evaluate system
+            performance. Writing raw samples to CSV allows post-session analysis
+            in Excel or Python without needing to re-run the system. The in-console
+            summary lets the developer spot outliers during a live session. A
+            separate class keeps the measurement logic out of the business code.
+
+[D-08: updated] TRACKING_ENABLED dead variable removed from pool_detector.py
+  Decision: Remove the module-level TRACKING_ENABLED = True variable.
+            Also removed the corresponding Java-side trackingEnabled flag from
+            ServerState: pool detection results are always forwarded when received.
+  Reason:   The Python variable was never wired to any external control. The Java
+            flag was removed alongside it because the camera being enabled is
+            already the effective gate for whether detection is active. Having two
+            redundant gates with no UI control for one of them added complexity
+            without benefit.
+
 ================================================================================
-CHAPTER 13 — HOW TO RUN THE SYSTEM
+CHAPTER 15: HOW TO RUN THE SYSTEM
 ================================================================================
 
 Prerequisites
@@ -846,11 +988,13 @@ Starting a Session
   1. Start the Java server:
        ./mvnw spring-boot:run   (or run ThesisRemyApplication from IDE)
 
-  2. Start the Python AI program (external — not part of this codebase):
+  2. Start the Python AI program (external: not part of this codebase):
        Ensure it is running at http://127.0.0.1:8060/api/v1/live
 
-  3. Start the pool detector (optional, for camera feature):
-       python pool_detector.py
+  3. pool_detector.py starts automatically when the Java server starts.
+     No manual step is needed. The server detects Python, installs missing
+     packages if necessary, and launches the script as a subprocess.
+     Its log output appears in the same console as the Java server.
 
   4. Open the dashboard in a browser:
        http://localhost:9999/dashboard
@@ -864,7 +1008,7 @@ Starting a Session
   7. If using the camera feature:
        - Go to the Camera & Detection page on the dashboard
        - Enable Camera (note: this is a proof-of-concept feature)
-       - Enable Pool Tracking
+       - Pool detection runs automatically once the camera is enabled
 
   8. To end the session: click "Stop Session" on the dashboard.
      If the camera was active, the video will be stitched automatically

@@ -42,8 +42,16 @@ flowchart_1_overview.txt
 flowchart_2_intermediate.txt
 flowchart_3_detailed.txt
 
-### Generated at runtime — created automatically when the server starts ###
+### Generated at runtime: created automatically when the server starts ###
 frames/
 annotated/
 videos/
 
+### Claude Code ###
+CLAUDE.md
+
+DOCUMENTATION.txt
+DOCUMENTATION.txt
+FLOWCHART.txt
+DOCUMENTATION.txt
+PROJECT_CONTEXT.md

@@ -1,5 +1,5 @@
 """
-pool_detector.py — Weld Pool Detector
+pool_detector.py: Weld Pool Detector
 
 Watches the frames/ folder for new JPEG frames saved by the Java server.
 When a new frame appears, it tries to detect the brightest circular blob
@@ -10,16 +10,16 @@ then broadcasts it to the glasses as a named SSE event (pooldetection).
 
 Detection pipeline:
   1. Load frame as grayscale
-  2. Gaussian blur        — smooths noise before thresholding
-  3. Brightness threshold — isolates the bright blob
-  4. Morphological open   — removes small noise specks outside the blob
-  5. Morphological close  — fills holes and gaps inside the blob
-  6. Find contours        — locate the boundaries of bright regions
-  7. Circularity filter   — reject shapes that are not roughly circular
-  8. Normalize + POST     — send result to Java as 0.0-1.0 coordinates
+  2. Gaussian blur       : smooths noise before thresholding
+  3. Brightness threshold: isolates the bright blob
+  4. Morphological open  : removes small noise specks outside the blob
+  5. Morphological close : fills holes and gaps inside the blob
+  6. Find contours       : locate the boundaries of bright regions
+  7. Circularity filter  : reject shapes that are not roughly circular
+  8. POST                : send result to Java as pixel coordinates
 
 All tunable settings are at the top of this file.
-For testing, use a flashlight as the bright source — same blob shape as a weld pool.
+For testing, use a flashlight as the bright source: same blob shape as a weld pool.
 """
 
 import os
@@ -37,23 +37,23 @@ FRAMES_DIR    = "frames/"                       # folder Java writes frames to
 ANNOTATED_DIR = "annotated/"                    # annotated frames saved here for video stitching
 JAVA_ENDPOINT = "http://127.0.0.1:9999/pool"   # Java endpoint that receives results
 
-# Threshold — pixels brighter than this value (0-255) are treated as part of the blob.
-# 150 works well for a flashlight through a camera — raise toward 200+ for a real welding arc.
+# Threshold: pixels brighter than this value (0-255) are treated as part of the blob.
+# 150 works well for a flashlight through a camera: raise toward 200+ for a real welding arc.
 # If nothing is being detected, lower this value first.
 BRIGHTNESS_THRESHOLD = 200
 
-# Gaussian blur kernel size — must be an odd number (e.g. 5, 7, 9).
+# Gaussian blur kernel size: must be an odd number (e.g. 5, 7, 9).
 # Higher = more smoothing. Helps clean up JPEG compression noise before thresholding.
 BLUR_KERNEL = 7
 
-# Morphological kernel size — controls how aggressively erosion/dilation operate.
+# Morphological kernel size: controls how aggressively erosion/dilation operate.
 # Higher = stronger effect.
 MORPH_KERNEL = 8
 
-# Minimum blob area in pixels — anything smaller than this is ignored as noise.
+# Minimum blob area in pixels: anything smaller than this is ignored as noise.
 MIN_BLOB_AREA = 700
 
-# Circularity threshold — 1.0 is a perfect circle, 0.0 is a straight line.
+# Circularity threshold: 1.0 is a perfect circle, 0.0 is a straight line.
 # The weld pool and flashlight are both close to circular.
 # Reject anything below this value to filter out non-circular reflections.
 MIN_CIRCULARITY = 0.62
@@ -62,7 +62,7 @@ MIN_CIRCULARITY = 0.62
 # 0.1 = 10 times per second, which is fast enough for smooth tracking.
 POLL_INTERVAL = 0.1
 
-# Debug mode — saves the thresholded binary mask to debug/ for every processed frame.
+# Debug mode: saves the thresholded binary mask to debug/ for every processed frame.
 # Open these images to see exactly what the detector sees after thresholding.
 # Useful when nothing is being detected and you need to tune the threshold.
 # Set to True to enable, False for normal use.
@@ -80,10 +80,10 @@ def detect_pool(image_path):
     Loads a JPEG frame and tries to find the weld pool.
 
     Returns a dict with:
-      poolDetected  — True if a valid pool was found, False otherwise
-      poolX         — horizontal center, normalized 0.0 (left) to 1.0 (right)
-      poolY         — vertical center,   normalized 0.0 (top)  to 1.0 (bottom)
-      poolRadius    — radius normalized to image width
+      poolDetected : True if a valid pool was found, False otherwise
+      poolX        : horizontal center in pixels
+      poolY        : vertical center in pixels
+      poolRadius   : radius in pixels
     """
 
     no_detection = {"poolDetected": False, "poolX": 0, "poolY": 0, "poolRadius": 0}
@@ -94,7 +94,7 @@ def detect_pool(image_path):
     color_frame = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
     if frame is None or color_frame is None:
-        # File may still be being written by Java — skip this frame
+        # File may still be being written by Java: skip this frame
         return no_detection
 
     def save_and_return_no_detection():
@@ -103,9 +103,7 @@ def detect_pool(image_path):
         cv2.imwrite(annotated_path, color_frame)
         return no_detection
 
-    height, width = frame.shape
-
-    # Step 1: Gaussian blur 
+    # Step 1: Gaussian blur
     # Smooths the image before thresholding so JPEG compression artifacts
     # and small noise specks do not produce false contours.
     blurred = cv2.GaussianBlur(frame, (BLUR_KERNEL, BLUR_KERNEL), 0)
@@ -116,8 +114,8 @@ def detect_pool(image_path):
     _, binary = cv2.threshold(blurred, BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
 
     # Debug mode: save the binary mask so you can see what the detector is working with.
-    # If the mask is all black, the threshold is too high — lower BRIGHTNESS_THRESHOLD.
-    # If the mask is mostly white, the threshold is too low — raise it.
+    # If the mask is all black, the threshold is too high: lower BRIGHTNESS_THRESHOLD.
+    # If the mask is mostly white, the threshold is too low: raise it.
     if DEBUG_MODE:
         os.makedirs("debug/", exist_ok=True)
         debug_path = "debug/" + os.path.basename(image_path)
@@ -152,7 +150,7 @@ def detect_pool(image_path):
     for contour in contours:
         area = cv2.contourArea(contour)
         if area < MIN_BLOB_AREA:
-            continue  # too small — noise or reflection
+            continue  # too small: noise or reflection
 
         perimeter = cv2.arcLength(contour, True)
         if perimeter == 0:
@@ -160,7 +158,7 @@ def detect_pool(image_path):
 
         circularity = (4 * math.pi * area) / (perimeter * perimeter)
         if circularity < MIN_CIRCULARITY:
-            continue  # not round enough — probably not a weld pool
+            continue  # not round enough: probably not a weld pool
 
         valid.append((area, contour))
 
@@ -185,12 +183,11 @@ def detect_pool(image_path):
     cv2.circle(color_frame, (cx_int, cy_int), 4,     (0, 0,   255), -1) # red center dot
     cv2.imwrite(annotated_path, color_frame)
 
-    # Normalize to 0.0-1.0 so the result is independent of image resolution
     return {
         "poolDetected": True,
-        "poolX":        round(cx / width,  4),
-        "poolY":        round(cy / height, 4),
-        "poolRadius":   round(radius / width, 4)
+        "poolX":        round(cx, 2),
+        "poolY":        round(cy, 2),
+        "poolRadius":   round(radius, 2)
     }
 
 
@@ -238,7 +235,7 @@ def fetch_settings():
 
 
 def main():
-    print("[Detector] Started — watching frames/ for new frames")
+    print("[Detector] Started: watching frames/ for new frames")
 
     # Make sure the annotated frames folder exists
     os.makedirs(ANNOTATED_DIR, exist_ok=True)
@@ -259,10 +256,13 @@ def main():
         files = sorted(glob.glob(FRAMES_DIR + "frame_?????.jpg"))
 
         if files:
-            # If the lowest frame number is less than last_processed, the Java server
-            # cleared the frames folder and started a new session — reset our counter.
-            lowest = get_frame_number(files[0])
-            if lowest < last_processed:
+            # If the HIGHEST frame number currently on disk is less than last_processed,
+            # the Java server cleared the frames folder and started a new session.
+            # We compare against the highest (not the lowest) because during a normal
+            # session frames accumulate: the lowest stays at 0 the whole time, so
+            # comparing against it would falsely report a reset on every iteration.
+            highest = get_frame_number(files[-1])
+            if highest < last_processed:
                 print("[Detector] Frame counter reset detected, starting fresh.")
                 last_processed = -1
 

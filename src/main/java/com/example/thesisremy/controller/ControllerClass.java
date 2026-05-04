@@ -12,18 +12,18 @@ import com.example.thesisremy.serviceandcomponents.FrameWebSocketHandler;
 import com.example.thesisremy.serviceandcomponents.ServerState;
 
 /*
-    This is the front door of the server — all HTTP communication with the outside world
+    This is the front door of the server: all HTTP communication with the outside world
     starts here. Three endpoints are exposed:
 
-      GET  /stream        — the Android glasses connect here to receive live welding data
+      GET  /stream       : the Android glasses connect here to receive live welding data
                             over a persistent SSE connection (Server-Sent Events).
                             Two named event types are sent over this connection:
-                              "welddata"      — Python AI JSON (current, voltage, gas flow ...)
-                              "cameraControl" — server → glasses command to start/stop camera
+                              "welddata"     : Python AI JSON (current, voltage, gas flow ...)
+                              "cameraControl": server → glasses command to start/stop camera
 
-      GET  /frames/count  — returns how many camera frames have been saved this session.
+      GET  /frames/count : returns how many camera frames have been saved this session.
 
-      POST /pool          — called by pool_detector.py with the latest detection result.
+      POST /pool         : called by pool_detector.py with the latest detection result.
                             Result is stored for the dashboard but NOT forwarded to the glasses.
                             Pool tracking is only used for the annotated video recording.
 
@@ -47,7 +47,7 @@ public class ControllerClass {
 
     /*
         When the glasses make a GET request to /stream, this method hands them
-        an SseEmitter — essentially an open channel through which the server can
+        an SseEmitter: essentially an open channel through which the server can
         push data to the glasses at any time. The emitter is registered in Broadcast
         so that future data packets find their way to this specific connection.
     */
@@ -71,7 +71,7 @@ public class ControllerClass {
     /*
         Called by pool_detector.py every time it processes a new frame.
         The result is stored on the dashboard for monitoring only.
-        It is NOT forwarded to the glasses — pool tracking is used exclusively
+        It is NOT forwarded to the glasses: pool tracking is used exclusively
         for the annotated video recording, not as a live AR overlay.
     */
     @PostMapping("/pool")

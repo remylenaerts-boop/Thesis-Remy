@@ -36,13 +36,13 @@ public class PoolDetectorLauncher {
             File script     = new File(workingDir, "pool_detector.py");
 
             if (!script.exists()) {
-                System.err.println("[Launcher] pool_detector.py not found at " + script.getAbsolutePath() + " — detector will not start.");
+                System.err.println("[Launcher] pool_detector.py not found at " + script.getAbsolutePath() + ": detector will not start.");
                 return;
             }
 
             String pythonCmd = resolvePython();
             if (pythonCmd == null) {
-                System.err.println("[Launcher] Neither 'python' nor 'python3' found on PATH — detector will not start.");
+                System.err.println("[Launcher] Neither 'python' nor 'python3' found on PATH: detector will not start.");
                 System.err.println("[Launcher] Install Python 3 and run: pip install -r requirements.txt");
                 return;
             }
@@ -74,14 +74,14 @@ public class PoolDetectorLauncher {
 
                 if (canImport(cmd)) return cmd;
 
-                // Packages missing — try to install them automatically
-                System.out.println("[Launcher] '" + cmd + "' is missing required packages — running pip install...");
+                // Packages missing: try to install them automatically
+                System.out.println("[Launcher] '" + cmd + "' is missing required packages: running pip install...");
                 Process pip = new ProcessBuilder(cmd, "-m", "pip", "install", "-r", "requirements.txt")
                         .inheritIO()
                         .start();
                 int exitCode = pip.waitFor();
                 if (exitCode != 0) {
-                    System.err.println("[Launcher] pip install failed (exit " + exitCode + ") — detector will not start.");
+                    System.err.println("[Launcher] pip install failed (exit " + exitCode + "): detector will not start.");
                     continue;
                 }
 
@@ -90,7 +90,7 @@ public class PoolDetectorLauncher {
                     return cmd;
                 }
 
-                System.err.println("[Launcher] Packages still not importable after install — detector will not start.");
+                System.err.println("[Launcher] Packages still not importable after install: detector will not start.");
             } catch (Exception ignored) {
                 // command not found, try the next one
             }

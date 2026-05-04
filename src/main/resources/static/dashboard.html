@@ -3,14 +3,14 @@
 </script>
 
 <meta charset="UTF-8">
-<title>AR Welding — Dashboard</title>
+<title>AR Welding: Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ═══ TOKENS — LIGHT ═══ */
+    /* ═══ TOKENS: LIGHT ═══ */
     :root,
     [data-theme="light"] {
         --navy:         #003d6b;
@@ -31,7 +31,7 @@
         --text-3:       oklch(0.68 0.012 250);
         --text-inv:     #ffffff;
 
-        /* pastel accents — all ~0.08 chroma */
+        /* pastel accents: all ~0.08 chroma */
         --ok:           oklch(0.58 0.12 155);
         --ok-bg:        oklch(0.96 0.04 155);
         --ok-border:    oklch(0.88 0.06 155);
@@ -67,7 +67,7 @@
         --sidebar-border: rgba(255,255,255,.1);
     }
 
-    /* ═══ TOKENS — DARK ═══ */
+    /* ═══ TOKENS: DARK ═══ */
     [data-theme="dark"] {
         --navy:         #4b8fc5;
         --navy-2:       #6ba3d3;
@@ -901,7 +901,7 @@
         container-type: size;
     }
 
-    /* gauge column — sized off container height so 3 gauges always fit */
+    /* gauge column: sized off container height so 3 gauges always fit */
     .g-col {
         display: flex; flex-direction: column;
         justify-content: space-between;
@@ -1224,7 +1224,7 @@
                         <div class="health-pill ok" id="hp-ai">ONLINE</div>
                     </div>
                     <div class="health-val ok" id="sv-ai">Reachable</div>
-                    <div class="health-hint">Inference source · <span class="mono" id="sv-ai-lat">14 ms</span></div>
+                    <div class="health-hint">Inference source</div>
                     <div class="health-sparkline" id="spark-ai"><div class="spark-bar ok" style="height:74.02169198362436%"></div><div class="spark-bar ok" style="height:99.57030418389394%"></div><div class="spark-bar ok" style="height:90.5307871218184%"></div><div class="spark-bar ok" style="height:66.4271908058951%"></div><div class="spark-bar ok" style="height:93.92996636758048%"></div><div class="spark-bar ok" style="height:72.73499307124916%"></div><div class="spark-bar ok" style="height:60.253314221698375%"></div><div class="spark-bar ok" style="height:91.678103983925%"></div><div class="spark-bar ok" style="height:64.65051555752207%"></div><div class="spark-bar ok" style="height:84.43900776248208%"></div><div class="spark-bar ok" style="height:87.89037861529323%"></div><div class="spark-bar ok" style="height:77.79116951326826%"></div><div class="spark-bar ok" style="height:61.03308478827164%"></div><div class="spark-bar ok" style="height:63.929240644640466%"></div><div class="spark-bar ok" style="height:85.84971277808482%"></div><div class="spark-bar ok" style="height:60.536854476297975%"></div><div class="spark-bar ok" style="height:88.62921076406548%"></div><div class="spark-bar ok" style="height:64.62480369472273%"></div><div class="spark-bar ok" style="height:87.12970354231977%"></div><div class="spark-bar ok" style="height:74.76026917946157%"></div><div class="spark-bar ok" style="height:88.02274697469909%"></div><div class="spark-bar ok" style="height:76.38989634664856%"></div><div class="spark-bar ok" style="height:75.86623281228665%"></div><div class="spark-bar ok" style="height:63.45254349543225%"></div></div>
                 </div>
 
@@ -1241,10 +1241,10 @@
                 <div class="health">
                     <div class="health-top">
                         <div class="health-label">Glasses · WebSocket</div>
-                        <div class="health-pill ok" id="hp-ws">CONNECTED</div>
+                        <div class="health-pill warn" id="hp-ws">IDLE</div>
                     </div>
-                    <div class="health-val ok" id="sv-ws">Connected</div>
-                    <div class="health-hint">Device · <span class="mono" id="sv-ws-dev">glasses-lenaerts-01</span></div>
+                    <div class="health-val warn" id="sv-ws">Idle</div>
+                    <div class="health-hint">Device · <span class="mono" id="sv-ws-dev">no frames</span></div>
                     <div class="health-sparkline" id="spark-ws"><div class="spark-bar ok" style="height:97.30931636482092%"></div><div class="spark-bar ok" style="height:82.52763167967093%"></div><div class="spark-bar ok" style="height:63.25442098885378%"></div><div class="spark-bar ok" style="height:81.27704150061054%"></div><div class="spark-bar ok" style="height:81.35963431532569%"></div><div class="spark-bar ok" style="height:78.27955210975782%"></div><div class="spark-bar ok" style="height:60.59716270259539%"></div><div class="spark-bar ok" style="height:86.60562495721115%"></div><div class="spark-bar ok" style="height:91.32773239188134%"></div><div class="spark-bar ok" style="height:84.5830321477996%"></div><div class="spark-bar ok" style="height:65.97166272720264%"></div><div class="spark-bar ok" style="height:64.01572992439151%"></div><div class="spark-bar ok" style="height:78.1041741207299%"></div><div class="spark-bar ok" style="height:90.85418426279655%"></div><div class="spark-bar ok" style="height:87.46269289240618%"></div><div class="spark-bar ok" style="height:85.35020068413948%"></div><div class="spark-bar ok" style="height:73.07455717246742%"></div><div class="spark-bar ok" style="height:66.06605267405943%"></div><div class="spark-bar ok" style="height:69.14755507125784%"></div><div class="spark-bar ok" style="height:68.63186529817455%"></div><div class="spark-bar ok" style="height:68.93393133720733%"></div><div class="spark-bar ok" style="height:99.19361097562407%"></div><div class="spark-bar ok" style="height:80.04352211148395%"></div><div class="spark-bar ok" style="height:92.90393684706976%"></div></div>
                 </div>
 
@@ -1259,24 +1259,24 @@
                             <div class="card-title">Live data · last packet</div>
                             <div class="card-sub" id="liveFresh">Awaiting first packet…</div>
                         </div>
-                        <span class="chip mono chip-time" id="ld-time">—</span>
+                        <span class="chip mono chip-time" id="ld-time">-</span>
                     </div>
                     <div class="live-grid">
                         <div class="live-item">
                             <div class="live-label">Current</div>
-                            <div class="live-val mono" id="ld-current">—<span class="live-unit">A</span></div>
+                            <div class="live-val mono" id="ld-current">-<span class="live-unit">A</span></div>
                         </div>
                         <div class="live-item">
                             <div class="live-label">Voltage</div>
-                            <div class="live-val mono" id="ld-voltage">—<span class="live-unit">V</span></div>
+                            <div class="live-val mono" id="ld-voltage">-<span class="live-unit">V</span></div>
                         </div>
                         <div class="live-item">
                             <div class="live-label">Gas flow</div>
-                            <div class="live-val mono" id="ld-gas">—<span class="live-unit">l/min</span></div>
+                            <div class="live-val mono" id="ld-gas">-<span class="live-unit">l/min</span></div>
                         </div>
                         <div class="live-item">
                             <div class="live-label">Porosity</div>
-                            <div class="live-val mono" id="ld-porosity">—<span class="live-unit">%</span></div>
+                            <div class="live-val mono" id="ld-porosity">-<span class="live-unit">%</span></div>
                         </div>
                     </div>
                 </div>
@@ -1285,7 +1285,7 @@
                     <div class="card-head">
                         <div>
                             <div class="card-title">Session controls</div>
-                            <div class="card-sub">Toggle individually — Go Live handles both at once.</div>
+                            <div class="card-sub">Toggle individually. Go Live handles both at once.</div>
                         </div>
                     </div>
                     <div class="toggle-row">
@@ -1320,20 +1320,20 @@
                 </div>
                 <div class="docs-body">
 
-                    <div class="ep-section">Core — AI data &amp; glasses</div>
-                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/stream</div><div class="ep-desc">SSE stream — glasses subscribe here; receives <em>welddata</em>, <em>cameraControl</em> events</div></div>
-                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/status</div><div class="ep-desc">Full server status as JSON — polled every 2s by dashboard</div></div>
+                    <div class="ep-section">Core: AI data &amp; glasses</div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/stream</div><div class="ep-desc">SSE stream: glasses subscribe here; receives <em>welddata</em>, <em>cameraControl</em> events</div></div>
+                    <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/status</div><div class="ep-desc">Full server status as JSON: polled every 2s by dashboard</div></div>
                     <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/polling</div><div class="ep-desc">Enable / disable DataGetter fetching from Python AI</div></div>
                     <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/streaming</div><div class="ep-desc">Enable / disable SSE broadcast to glasses</div></div>
 
                     <div class="ep-section">Configuration</div>
-                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/app-settings</div><div class="ep-desc">Gauge ranges, heatbar duration — fetched by Android on launch</div></div>
+                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/app-settings</div><div class="ep-desc">Gauge ranges, heatbar duration: fetched by Android on launch</div></div>
 
                     <div class="ep-section">Camera &amp; detection · proof-of-concept</div>
-                    <div class="ep-row"><div class="ep-method">WS</div><div class="ep-url">:9999/frames</div><div class="ep-desc">WebSocket — glasses stream JPEG frames when camera is enabled</div></div>
+                    <div class="ep-row"><div class="ep-method">WS</div><div class="ep-url">:9999/frames</div><div class="ep-desc">WebSocket: glasses stream JPEG frames when camera is enabled</div></div>
                     <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/pool</div><div class="ep-desc">pool_detector.py posts detection result; stored for dashboard monitoring only</div></div>
-                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/camera</div><div class="ep-desc">Enable / disable camera capture — also tells glasses to start/stop via SSE</div></div>
-                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/settings</div><div class="ep-desc">Detection parameters — also polled by pool_detector.py</div></div>
+                    <div class="ep-row"><div class="ep-method">POST</div><div class="ep-url">:9999/api/toggle/camera</div><div class="ep-desc">Enable / disable camera capture: also tells glasses to start/stop via SSE</div></div>
+                    <div class="ep-row"><div class="ep-method">GET/POST</div><div class="ep-url">:9999/api/settings</div><div class="ep-desc">Detection parameters: also polled by pool_detector.py</div></div>
                     <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/videos</div><div class="ep-desc">List of recorded MP4 files with metadata</div></div>
                     <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/api/video/{filename}</div><div class="ep-desc">Stream / play a recorded MP4 inline</div></div>
                     <div class="ep-row"><div class="ep-method">GET</div><div class="ep-url">:9999/frames/count</div><div class="ep-desc">Frames saved in current session</div></div>
@@ -1347,7 +1347,7 @@
             <div class="page-header">
                 <div>
                     <div class="page-title">Glasses Preview</div>
-                    <div class="page-sub">A faithful recreation of what the Android HUD renders — gauges and porosity heatbar — for demos and documentation. Uses live data when a session is active, or a smooth simulation otherwise.</div>
+                    <div class="page-sub">A faithful recreation of what the Android HUD renders: gauges and porosity heatbar: for demos and documentation. Uses live data when a session is active, or a smooth simulation otherwise.</div>
                 </div>
                 <div class="card-actions-right" style="margin:0;padding:0;border:none;">
                     <button class="btn btn-ghost" id="btnSimToggle" onclick="toggleGlassesSim()">Play simulation</button>
@@ -1414,7 +1414,7 @@
                 </div>
 
                 <div class="glasses-caption">
-                    <span>Mirrors the Android layout · gauges and heatbar only — splash and settings gear hidden.</span>
+                    <span>Mirrors the Android layout · gauges and heatbar only: splash and settings gear hidden.</span>
                     <span class="mono" id="gh-fps">30 fps · packet 00000</span>
                 </div>
             </div>
@@ -1467,7 +1467,7 @@
                         </div>
                         <div class="stat-line">
                             <div class="lab">Glasses WebSocket</div>
-                            <div class="big ok" id="sv-ws-c">Connected</div>
+                            <div class="big warn" id="sv-ws-c">Idle</div>
                         </div>
                     </div>
             </div>
@@ -1486,7 +1486,7 @@
                 <div class="section-label">Detection parameters <span class="sec-count">5 fields</span></div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Brightness threshold <span style="color:var(--text-3);font-weight:400;">0–255</span></label>
+                        <label>Brightness threshold <span style="color:var(--text-3);font-weight:400;">0-255</span></label>
                         <input type="number" id="s-brightnessThreshold" min="0" max="255">
                         <span class="form-hint">Pixels above this value are treated as the weld pool.</span>
                     </div>
@@ -1506,7 +1506,7 @@
                         <span class="form-hint">Blobs smaller than this are ignored as noise.</span>
                     </div>
                     <div class="form-group">
-                        <label>Min circularity <span style="color:var(--text-3);font-weight:400;">0.0–1.0</span></label>
+                        <label>Min circularity <span style="color:var(--text-3);font-weight:400;">0.0-1.0</span></label>
                         <input type="number" id="s-minCircularity" min="0" max="1" step="0.05">
                         <span class="form-hint">1.0 = perfect circle. Filters non-circular blobs.</span>
                     </div>
@@ -1626,7 +1626,7 @@
     const pages = {
         'overview':        { title: 'Overview',           sub: 'AI data stream and glasses connection' },
         'glasses':         { title: 'Glasses Preview',   sub: 'Live mirror of the Android HUD' },
-        'camera':          { title: 'Camera & Detection', sub: 'Proof-of-concept — disable to reduce latency' },
+        'camera':          { title: 'Camera & Detection', sub: 'Proof-of-concept: disable when not in use' },
         'server-settings': { title: 'Camera Settings',    sub: 'Detection parameters and frame capture rate' },
         'app-settings':    { title: 'App Settings',       sub: 'Configuration pushed to Android glasses' }
     };
@@ -1732,7 +1732,7 @@
             eye.classList.add('live');
             est.textContent = 'Session live';
             tit.textContent = 'Streaming to the glasses.';
-            dsc.textContent = 'Polling the Python AI on port 8060 and broadcasting over SSE. Stop any time — the glasses will keep their last packet for a second before returning to splash.';
+            dsc.textContent = 'Polling the Python AI on port 8060 and broadcasting over SSE. Stop any time. The glasses will keep their last packet for a second before returning to splash.';
         } else {
             btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Go Live';
             btn.className = 'hero-btn';
@@ -1817,7 +1817,6 @@
         setHealth('hp-ai',        'sv-ai',        s.pythonAiReachable ? 'ok' : 'err',
                   s.pythonAiReachable ? 'ONLINE' : 'OFFLINE',
                   s.pythonAiReachable ? 'Reachable' : 'Unreachable');
-        document.getElementById('sv-ai-lat').textContent = s.pythonAiReachable ? ((s.aiLatencyMs || (12 + Math.floor(Math.random()*8))) + ' ms') : '— ms';
 
         setHealth('hp-sse', 'sv-streaming',
                   s.streamingEnabled ? (s.connectedClients > 0 ? 'ok' : 'warn') : 'warn',
@@ -1828,9 +1827,9 @@
 
         setHealth('hp-ws', 'sv-ws',
                   s.websocketActive ? 'ok' : 'warn',
-                  s.websocketActive ? 'CONNECTED' : 'IDLE',
-                  s.websocketActive ? 'Connected' : 'Not connected');
-        document.getElementById('sv-ws-dev').textContent = s.glassesDevice || (s.websocketActive ? 'glasses-1' : 'not paired');
+                  s.websocketActive ? 'STREAMING' : 'IDLE',
+                  s.websocketActive ? 'Streaming' : 'Idle');
+        document.getElementById('sv-ws-dev').textContent = s.glassesDevice || (s.websocketActive ? 'glasses-1' : 'no frames');
 
         // sparklines
         pushSpark('ai',  s.pythonAiReachable ? 'ok' : 'err');
@@ -1838,7 +1837,7 @@
         pushSpark('ws',  s.websocketActive ? 'ok' : 'warn');
 
         // pre-flight
-        setPreflight('pre-ai',     s.pythonAiReachable ? 'ok' : 'err', s.pythonAiReachable ? 'Reachable · ' + (document.getElementById('sv-ai-lat').textContent) : 'No response on port 8060');
+        setPreflight('pre-ai',     s.pythonAiReachable ? 'ok' : 'err', s.pythonAiReachable ? 'Reachable' : 'No response on port 8060');
         setPreflight('pre-poll',   s.pollingEnabled ? 'ok' : 'warn',   s.pollingEnabled ? 'Active' : 'Paused · press Go Live');
         setPreflight('pre-stream', s.streamingEnabled ? 'ok' : 'warn', s.streamingEnabled ? ('Active · ' + (s.connectedClients || 0) + ' client(s)') : 'Paused · press Go Live');
 
@@ -1849,7 +1848,7 @@
 
         // camera stats
         const fEl = document.getElementById('sv-frames'); if (fEl) fEl.textContent = s.framesThisSession || 0;
-        const wsC = document.getElementById('sv-ws-c'); if (wsC) { wsC.textContent = s.websocketActive ? 'Connected' : 'Offline'; wsC.className = 'big ' + (s.websocketActive ? 'ok' : 'err'); }
+        const wsC = document.getElementById('sv-ws-c'); if (wsC) { wsC.textContent = s.websocketActive ? 'Streaming' : 'Idle'; wsC.className = 'big ' + (s.websocketActive ? 'ok' : 'warn'); }
 
         // session sync
         const allOn = s.pollingEnabled && s.streamingEnabled;
@@ -1873,7 +1872,7 @@
         pythonAiReachable: true, pollingEnabled: false, streamingEnabled: false,
         trackingEnabled: false, cameraEnabled: false, websocketActive: true,
         connectedClients: 1, framesThisSession: 0, eventsPerSec: 0,
-        glassesDevice: 'glasses-lenaerts-01', aiLatencyMs: 14,
+        glassesDevice: 'glasses-lenaerts-01',
         lastDataPacket: null, lastPoolResult: null,
         polling: false, streaming: false
     };

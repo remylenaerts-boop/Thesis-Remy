@@ -18,7 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
     Ghost connection problem: when a Wi-Fi connection drops abruptly, Spring does not
     always fire the onError/onCompletion callbacks. The emitter stays in the list as a
     ghost and the dashboard shows too many connected clients. A scheduled heartbeat
-    every 30 seconds sends a small comment to all emitters — any dead connection throws
+    every 30 seconds sends a small comment to all emitters: any dead connection throws
     an IOException and is removed immediately.
 */
 @Service
@@ -42,7 +42,7 @@ public class Broadcast {
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onError(e    -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
-        System.out.println("[SSE] Client connected — active connections: " + emitters.size());
+        System.out.println("[SSE] Client connected: active connections: " + emitters.size());
         return emitter;
     }
 
@@ -68,7 +68,7 @@ public class Broadcast {
         The Android app can listen for a specific event name and ignore all others.
 
         Currently used event name:
-          "cameraControl" — start/stop command sent to the glasses when camera is toggled
+          "cameraControl": start/stop command sent to the glasses when camera is toggled
         We could easily expand this to the weldpool location and other small pieces of data.
     */
     public void broadcastNamed(String eventName, String json) {
@@ -84,7 +84,7 @@ public class Broadcast {
     }
 
     /*
-        Heartbeat — runs every 30 seconds.
+        Heartbeat: runs every 30 seconds.
         Sends an SSE comment (a line starting with ':') to every emitter.
         SSE comments carry no data and are ignored by clients, but they cause
         an IOException on any connection that has silently died. Those dead
@@ -102,7 +102,7 @@ public class Broadcast {
             }
         });
         if (!emitters.isEmpty()) {
-            System.out.println("[SSE] Heartbeat — active connections: " + emitters.size());
+            System.out.println("[SSE] Heartbeat: active connections: " + emitters.size());
         }
     }
 

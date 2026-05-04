@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     Entry point of the Spring Boot application.
 
     @SpringBootApplication tells Spring to scan all classes in this package and
-    set up the entire application context automatically — no manual configuration needed.
+    set up the entire application context automatically: no manual configuration needed.
 
     @EnableScheduling activates support for @Scheduled methods. Without this annotation,
     the DataGetter polling loop would simply never run.

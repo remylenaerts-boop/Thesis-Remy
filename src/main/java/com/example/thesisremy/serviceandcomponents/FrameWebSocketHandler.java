@@ -1,5 +1,6 @@
 package com.example.thesisremy.serviceandcomponents;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
@@ -26,8 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
     Wi-Fi hiccup handling: when the glasses disconnect, stitching does NOT happen
     immediately. Instead a 5-second timer starts. If the glasses reconnect within
-    those 5 seconds the timer is cancelled and the session continues seamlessly —
-    frames keep their numbers and nothing is lost. Only if the glasses stay
+    those 5 seconds the timer is cancelled and the session continues seamlessly.
+    Frames keep their numbers and nothing is lost. Only if the glasses stay
     disconnected for the full 5 seconds is the video stitched and frames cleared.
     This solved the problem where videos would be stitched during use.
 
@@ -49,9 +50,20 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     // If the glasses reconnect within this window, stitching is cancelled.
     private static final long STITCH_DELAY_MS = 5000;
 
-    private final AtomicInteger frameCounter = new AtomicInteger(0);
+    // Timestamp of the most recently received frame. The dashboard's "streaming"
+    // indicator is true when this is fresh (within STREAMING_FRESHNESS_MS).
+    // Read-side liveness: no probes, no false positives — if frames are arriving,
+    // the connection is by definition alive.
+    private static final long STREAMING_FRESHNESS_MS = 2000;
+    private volatile long lastFrameMs = 0;
 
-    private volatile WebSocketSession activeSession = null;
+    // If we have captured frames on disk but no new frame has arrived in this
+    // long, treat the session as ended and stitch the video. This catches
+    // ungraceful disconnects (glasses powered off, OS killed the app) where
+    // afterConnectionClosed never fires.
+    private static final long IDLE_STITCH_MS = 10_000;
+
+    private final AtomicInteger frameCounter = new AtomicInteger(0);
 
     private final ServerState serverState;
 
@@ -60,8 +72,6 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
 
     // Reference to the pending stitch task so we can cancel it on reconnect
     private volatile ScheduledFuture<?> pendingStitch = null;
-
-    private final LatencyStats frameStats = new LatencyStats("frame", 100);
 
     public FrameWebSocketHandler(ServerState serverState) {
         this.serverState = serverState;
@@ -72,8 +82,6 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        activeSession = session;
-
         // If a stitch was pending from a previous hiccup, cancel it then session resumes
         if (pendingStitch != null && !pendingStitch.isDone()) {
             pendingStitch.cancel(false);
@@ -86,6 +94,11 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     // Each incoming frame is raw JPEG bytes, save it to disk with a numbered filename
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) throws IOException {
+        // Stamp every arriving frame so isWebSocketActive() can tell that data is flowing.
+        // Done BEFORE the cameraEnabled check so a glasses-keepalive (frames sent while the
+        // dashboard happens to have the camera disabled) still counts as proof of life.
+        lastFrameMs = System.currentTimeMillis();
+
         // Only save frames when camera capture is explicitly enabled from the dashboard.
         // When disabled, the glasses are also told to stop sending, so this is a safety net.
         if (!serverState.isCameraEnabled()) return;
@@ -94,11 +107,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         message.getPayload().get(bytes); //and now the payload is put into the bytes array
 
         String filename = String.format(FRAMES_DIR + "frame_%05d.jpg", frameCounter.getAndIncrement());
-        long t0 = System.nanoTime();
         Files.write(Paths.get(filename), bytes);
-        long writeMs = (System.nanoTime() - t0) / 1_000_000;
-        System.out.printf("[LATENCY][frame] diskWrite=%dms frameSize=%dKB%n", writeMs, bytes.length / 1024);
-        frameStats.record(writeMs);
     }
 
     /*
@@ -108,8 +117,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        activeSession = null;
-        System.out.println("[WS] Glasses disconnected — status: " + status);
+        System.out.println("[WS] Glasses disconnected: status: " + status);
 
         if (frameCounter.get() == 0) {
             System.out.println("[WS] No frames received, skipping video stitch.");
@@ -127,6 +135,40 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         }, STITCH_DELAY_MS, TimeUnit.MILLISECONDS);
     }
 
+    /*
+        Backup stitch path for ungraceful disconnects.
+
+        afterConnectionClosed only fires when Spring is told the session ended,
+        either by a clean close frame from the client or by TCP detecting the
+        socket is dead. If the glasses are powered off mid-session, neither of
+        those happens for a long time (TCP keepalive default is hours), so the
+        video would never be stitched.
+
+        This check runs every 5 seconds and stitches whenever:
+          - frames have been captured this session (frameCounter > 0), AND
+          - no frame has arrived in IDLE_STITCH_MS, AND
+          - no other stitch is already pending.
+
+        It coexists with afterConnectionClosed cleanly: a graceful disconnect
+        schedules pendingStitch first, and this check skips while it's pending.
+        Once stitch runs, frameCounter resets to 0 and the check skips again.
+    */
+    @Scheduled(fixedRate = 5000)
+    public void stitchOnIdle() {
+        if (frameCounter.get() == 0) return;
+        if (pendingStitch != null && !pendingStitch.isDone()) return;
+        if (System.currentTimeMillis() - lastFrameMs < IDLE_STITCH_MS) return;
+
+        System.out.println("[WS] No frames for " + (IDLE_STITCH_MS / 1000) + "s with frames on disk, stitching idle session.");
+        pendingStitch = scheduler.schedule(() -> {
+            try {
+                stitchAndClean();
+            } catch (Exception e) {
+                System.err.println("[WS] Idle stitch failed: " + e.getMessage());
+            }
+        }, 0, TimeUnit.MILLISECONDS);
+    }
+
     // Runs ffmpeg to turn the saved JPEG sequence into an MP4, then clears the frames
     private void stitchAndClean() throws IOException, InterruptedException {
         String timestamp  = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
@@ -139,7 +181,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         String  sourceDir      = hasAnnotated ? ANNOTATED_DIR : FRAMES_DIR;
 
         System.out.println("[WS] Stitching " + frameCounter.get() + " frames from " + sourceDir + " --> " + outputPath);
-        if (hasAnnotated) System.out.println("[WS] Using annotated frames — detection circles will be visible.");
+        if (hasAnnotated) System.out.println("[WS] Using annotated frames: detection circles will be visible.");
 
         Process process = new ProcessBuilder(
                 resolveFfmpeg(), "-y",
@@ -154,7 +196,7 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         process.getInputStream().transferTo(OutputStream.nullOutputStream());
 
         if (process.waitFor() != 0) {
-            System.err.println("[WS] ffmpeg failed — frames kept in " + sourceDir + " so nothing is lost.");
+            System.err.println("[WS] ffmpeg failed: frames kept in " + sourceDir + " so nothing is lost.");
             return;
         }
 
@@ -196,7 +238,14 @@ public class FrameWebSocketHandler extends BinaryWebSocketHandler {
         return frameCounter.get();
     }
 
+    /*
+        Returns true when a frame has arrived recently (within STREAMING_FRESHNESS_MS).
+        This is a read-side liveness check: we trust observed traffic, not the underlying
+        socket state. session.isOpen() can lie for several minutes on dead-but-not-detected
+        TCP connections (glasses powered off without a clean close); a fresh frame timestamp
+        cannot.
+    */
     public boolean isWebSocketActive() {
-        return activeSession != null && activeSession.isOpen();
+        return System.currentTimeMillis() - lastFrameMs < STREAMING_FRESHNESS_MS;
     }
 }
