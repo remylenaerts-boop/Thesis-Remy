@@ -36,7 +36,6 @@ public class ServerState {
     private volatile int    blurKernel          = 7;    // must be odd: 3, 5, 7, 9 ...
     private volatile int    morphKernel         = 8;    // erosion/dilation kernel size
     private volatile int    minBlobArea         = 700;  // minimum blob area in pixels
-    private volatile double minCircularity      = 0.62; // 0.0-1.0, 1.0 = perfect circle
     private volatile int    videoFramerate      = 30;   // fps used when stitching MP4
 
     // ── Camera capture (proof-of-concept feature: off by default) 
@@ -77,14 +76,12 @@ public class ServerState {
     public int    getBlurKernel()          { return blurKernel; }
     public int    getMorphKernel()         { return morphKernel; }
     public int    getMinBlobArea()         { return minBlobArea; }
-    public double getMinCircularity()      { return minCircularity; }
     public int    getVideoFramerate()      { return videoFramerate; }
 
     public void setBrightnessThreshold(int v)  { this.brightnessThreshold = v; }
     public void setBlurKernel(int v)           { this.blurKernel = v; }
     public void setMorphKernel(int v)          { this.morphKernel = v; }
     public void setMinBlobArea(int v)          { this.minBlobArea = v; }
-    public void setMinCircularity(double v)    { this.minCircularity = v; }
     public void setVideoFramerate(int v)       { this.videoFramerate = v; }
 
     public String getLastPoolResult()        { return lastPoolResult; }

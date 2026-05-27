@@ -233,7 +233,6 @@ The Python AI endpoint is hardcoded to `http://127.0.0.1:8060/api/v1/live` in `D
 | `BLUR_KERNEL` | `7` | Gaussian blur kernel size before thresholding. Must be odd. Higher = more smoothing. |
 | `MORPH_KERNEL` | `8` | Erosion/dilation kernel size. Higher = more aggressive noise removal and hole filling. |
 | `MIN_BLOB_AREA` | `700` | Minimum blob size in pixels. Blobs smaller than this are discarded as noise. |
-| `MIN_CIRCULARITY` | `0.62` | How round the blob must be (0.0-1.0, 1.0 = perfect circle). Rejects sparks and irregular reflections. |
 | `videoFramerate` | `30` | Frames per second used when stitching the annotated frames into the final MP4. |
 
 Enable `DEBUG_MODE = True` at the top of `pool_detector.py` to save binary threshold masks to `debug/`. This is useful for tuning the threshold when detection is not working.

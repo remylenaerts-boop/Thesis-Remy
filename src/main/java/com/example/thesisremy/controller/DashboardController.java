@@ -193,7 +193,6 @@ public class DashboardController {
             "blurKernel",          serverState.getBlurKernel(),
             "morphKernel",         serverState.getMorphKernel(),
             "minBlobArea",         serverState.getMinBlobArea(),
-            "minCircularity",      serverState.getMinCircularity(),
             "videoFramerate",      serverState.getVideoFramerate()
         ));
     }
@@ -215,8 +214,6 @@ public class DashboardController {
             serverState.setMorphKernel((Integer) body.get("morphKernel"));
         if (body.containsKey("minBlobArea"))
             serverState.setMinBlobArea((Integer) body.get("minBlobArea"));
-        if (body.containsKey("minCircularity"))
-            serverState.setMinCircularity(((Number) body.get("minCircularity")).doubleValue());
         if (body.containsKey("videoFramerate"))
             serverState.setVideoFramerate((Integer) body.get("videoFramerate"));
         return ResponseEntity.ok().build();

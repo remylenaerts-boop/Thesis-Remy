@@ -2,11 +2,11 @@
 pool_detector.py: Weld Pool Detector
 
 Watches the frames/ folder for new JPEG frames saved by the Java server.
-When a new frame appears, it tries to detect the brightest circular blob
+When a new frame appears, it tries to detect the brightest large blob
 (the weld pool, or a flashlight during testing).
 
-The detected position is sent to the Java server via HTTP POST, which
-then broadcasts it to the glasses as a named SSE event (pooldetection).
+The detected position is sent to the Java server via HTTP POST. The Java
+server stores it for the dashboard but does not forward it to the glasses.
 
 Detection pipeline:
   1. Load frame as grayscale
@@ -15,7 +15,7 @@ Detection pipeline:
   4. Morphological open  : removes small noise specks outside the blob
   5. Morphological close : fills holes and gaps inside the blob
   6. Find contours       : locate the boundaries of bright regions
-  7. Circularity filter  : reject shapes that are not roughly circular
+  7. Size filter         : reject blobs too small to be the weld pool
   8. POST                : send result to Java as pixel coordinates
 
 All tunable settings are at the top of this file.
@@ -25,7 +25,6 @@ For testing, use a flashlight as the bright source: same blob shape as a weld po
 import os
 import time
 import glob
-import math
 
 import cv2
 import numpy as np
@@ -52,11 +51,6 @@ MORPH_KERNEL = 8
 
 # Minimum blob area in pixels: anything smaller than this is ignored as noise.
 MIN_BLOB_AREA = 700
-
-# Circularity threshold: 1.0 is a perfect circle, 0.0 is a straight line.
-# The weld pool and flashlight are both close to circular.
-# Reject anything below this value to filter out non-circular reflections.
-MIN_CIRCULARITY = 0.62
 
 # How often the folder is scanned for new frames (seconds).
 # 0.1 = 10 times per second, which is fast enough for smooth tracking.
@@ -142,31 +136,21 @@ def detect_pool(image_path):
     if not contours:
         return save_and_return_no_detection()
 
-    # Step 6: Filter by area and circularity 
-    # For each contour, compute its area and circularity.
-    # Circularity = 4π × area / perimeter²,  equals 1.0 for a perfect circle.
-    # We keep only contours that are large enough and round enough.
+    # Step 6: Filter by area
+    # For each contour, compute its area and drop anything that is too small
+    # to be the weld pool. These are usually noise specks or small reflections.
     valid = []
     for contour in contours:
         area = cv2.contourArea(contour)
         if area < MIN_BLOB_AREA:
             continue  # too small: noise or reflection
-
-        perimeter = cv2.arcLength(contour, True)
-        if perimeter == 0:
-            continue
-
-        circularity = (4 * math.pi * area) / (perimeter * perimeter)
-        if circularity < MIN_CIRCULARITY:
-            continue  # not round enough: probably not a weld pool
-
         valid.append((area, contour))
 
     if not valid:
         return save_and_return_no_detection()
 
     # Step 7: Take the largest valid contour
-    # If multiple round blobs pass the filter, the largest one is assumed to
+    # If multiple blobs pass the size filter, the largest one is assumed to
     # be the weld pool. Smaller ones are likely reflections or sparks.
     largest_contour = max(valid, key=lambda x: x[0])[1]
 
@@ -218,7 +202,7 @@ def fetch_settings():
     Updates the module-level variables so detect_pool() uses the latest values.
     If the server is not reachable, the current values are kept unchanged.
     """
-    global BRIGHTNESS_THRESHOLD, BLUR_KERNEL, MORPH_KERNEL, MIN_BLOB_AREA, MIN_CIRCULARITY
+    global BRIGHTNESS_THRESHOLD, BLUR_KERNEL, MORPH_KERNEL, MIN_BLOB_AREA
 
     try:
         response  = requests.get(f"{JAVA_ENDPOINT.replace('/pool', '')}/api/settings", timeout=1.0)
@@ -228,7 +212,6 @@ def fetch_settings():
         BLUR_KERNEL          = settings.get("blurKernel",          BLUR_KERNEL)
         MORPH_KERNEL         = settings.get("morphKernel",         MORPH_KERNEL)
         MIN_BLOB_AREA        = settings.get("minBlobArea",         MIN_BLOB_AREA)
-        MIN_CIRCULARITY      = settings.get("minCircularity",      MIN_CIRCULARITY)
 
     except Exception as e:
         print(f"[Detector] Could not fetch settings from dashboard: {e} (using current values)")

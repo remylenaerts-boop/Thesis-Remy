@@ -82,7 +82,7 @@ public class ControllerClass {
 }
 
 /*
-Some extra info about the code, the ResponsEntity is a wrapper made by Spring 
+To add some extra detail for the interested reader, the ResponsEntity is a wrapper made by Spring 
 that lets you control the full HTTP response.
 
 To make it very simple, picture it like a shipping box, and the data inside is for example
