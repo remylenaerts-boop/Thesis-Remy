@@ -1,14 +1,22 @@
 package com.example.thesisremy.controller;
 
+import com.example.thesisremy.model.Layout;
+import com.example.thesisremy.model.Source;
 import com.example.thesisremy.serviceandcomponents.Broadcast;
 import com.example.thesisremy.serviceandcomponents.FrameWebSocketHandler;
+import com.example.thesisremy.serviceandcomponents.LayoutStore;
 import com.example.thesisremy.serviceandcomponents.ServerState;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -19,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /*
     Serves the dashboard web page and all its supporting API endpoints.
@@ -43,17 +52,28 @@ public class DashboardController {
     private final ServerState            serverState;
     private final Broadcast              broadcast;
     private final FrameWebSocketHandler  frameHandler;
+    private final LayoutStore            layoutStore;
     private final RestTemplate           restTemplate = new RestTemplate();
+
+    // Reads/writes Source, Widget and Layout instances which use public fields.
+    // The default Spring ObjectMapper only sees getters, so we configure a
+    // local mapper that picks up fields directly.
+    private final ObjectMapper           mapper = new ObjectMapper()
+            .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+            .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE)
+            .setVisibility(PropertyAccessor.IS_GETTER, JsonAutoDetect.Visibility.NONE);
 
     private static final String PYTHON_AI_URL = ServerState.PYTHON_AI_URL;
     private static final String VIDEOS_DIR    = "videos/";
 
     public DashboardController(ServerState serverState,
                                Broadcast broadcast,
-                               FrameWebSocketHandler frameHandler) {
+                               FrameWebSocketHandler frameHandler,
+                               LayoutStore layoutStore) {
         this.serverState  = serverState;
         this.broadcast    = broadcast;
         this.frameHandler = frameHandler;
+        this.layoutStore  = layoutStore;
     }
 
     // Redirect /dashboard to the static HTML page served by Spring Boot
@@ -252,5 +272,150 @@ public class DashboardController {
         if (body.containsKey("gasFlowMax"))        serverState.setGasFlowMax(       ((Number) body.get("gasFlowMax")).doubleValue());
         if (body.containsKey("heatbarDuration"))   serverState.setHeatbarDuration(  ((Number) body.get("heatbarDuration")).intValue());
         return ResponseEntity.ok().build();
+    }
+
+    // ── Sources (polled sensor endpoints) ────────────────────────────────────
+    //
+    // The new layout-driven flow treats every sensor as a Source. The dashboard
+    // editor lists them, can add new ones, and probes them to see the JSON shape
+    // before binding widgets to specific fields.
+
+    @GetMapping("/api/sources")
+    public ResponseEntity<List<Source>> listSources() {
+        return ResponseEntity.ok(layoutStore.getSources());
+    }
+
+    /*
+        Upsert a single source by id. Body is a Source JSON object.
+        SourcePoller is notified via LayoutStore and will reschedule
+        its polling tasks within a few milliseconds.
+    */
+    @PostMapping("/api/sources")
+    public ResponseEntity<Source> upsertSource(@RequestBody Source s) {
+        if (s.id == null || s.id.isBlank())
+            return ResponseEntity.badRequest().build();
+        if (s.pollMs <= 0) s.pollMs = 1000;
+        layoutStore.putSource(s);
+        return ResponseEntity.ok(s);
+    }
+
+    @DeleteMapping("/api/sources/{id}")
+    public ResponseEntity<Void> deleteSource(@PathVariable String id) {
+        return layoutStore.deleteSource(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
+    }
+
+    /*
+        Returns one fresh-ish JSON sample for the source so the dashboard can
+        show a field picker. Prefers the cached packet from SourcePoller; if
+        none exists yet, performs a one-shot fetch.
+    */
+    @GetMapping("/api/sources/{id}/probe")
+    public ResponseEntity<String> probeSource(@PathVariable String id) {
+        Optional<Source> opt = layoutStore.getSource(id);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+
+        String cached = layoutStore.getLastPacket(id);
+        if (cached != null) return jsonResponse(cached);
+
+        try {
+            String json = restTemplate.getForObject(opt.get().url, String.class);
+            if (json == null) return ResponseEntity.noContent().build();
+            return jsonResponse(json);
+        } catch (RestClientException e) {
+            return ResponseEntity.status(502).body("{\"error\":\"unreachable\",\"message\":\""
+                    + e.getMessage().replace("\"", "\\\"") + "\"}");
+        }
+    }
+
+    @GetMapping("/api/sources/{id}/last")
+    public ResponseEntity<String> lastPacket(@PathVariable String id) {
+        String cached = layoutStore.getLastPacket(id);
+        if (cached == null) return ResponseEntity.noContent().build();
+        return jsonResponse(cached);
+    }
+
+    // ── Layouts (named widget presets) ───────────────────────────────────────
+
+    @GetMapping("/api/layouts")
+    public ResponseEntity<List<Layout>> listLayouts() {
+        return ResponseEntity.ok(layoutStore.getLayouts());
+    }
+
+    @GetMapping("/api/layouts/{name}")
+    public ResponseEntity<Layout> getLayout(@PathVariable String name) {
+        return layoutStore.getLayout(name)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/api/layouts")
+    public ResponseEntity<Layout> upsertLayout(@RequestBody Layout l) {
+        if (l.name == null || l.name.isBlank())
+            return ResponseEntity.badRequest().build();
+        if (l.widgets == null) l.widgets = new ArrayList<>();
+        layoutStore.putLayout(l);
+        return ResponseEntity.ok(l);
+    }
+
+    @DeleteMapping("/api/layouts/{name}")
+    public ResponseEntity<Void> deleteLayout(@PathVariable String name) {
+        return layoutStore.deleteLayout(name)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.badRequest().build();
+    }
+
+    /*
+        Returns the full active Layout including displayW/displayH so the
+        Android app can scale widget positions on first connect without
+        waiting for a push. Body shape matches POST /api/layouts/active/push
+        and POST /api/layouts so all three speak the same JSON.
+    */
+    @GetMapping("/api/layouts/active")
+    public ResponseEntity<Layout> getActiveLayout() {
+        return layoutStore.getActiveLayout()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /*
+        Body: { "name": "default" }
+        Marks the named layout as active. Does not push to the glasses;
+        call /api/layouts/active/push for that.
+    */
+    @PostMapping("/api/layouts/active")
+    public ResponseEntity<Map<String, String>> setActiveLayout(@RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        if (name == null || name.isBlank())
+            return ResponseEntity.badRequest().build();
+        if (!layoutStore.setActiveLayout(name))
+            return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(Map.of("activeLayout", name));
+    }
+
+    /*
+        Broadcasts the active layout to all connected glasses as a NAMED SSE
+        event "layout". The Android app rebuilds its overlay on receipt.
+        Returns the layout that was pushed so the dashboard can confirm.
+    */
+    @PostMapping("/api/layouts/active/push")
+    public ResponseEntity<Layout> pushActiveLayout() {
+        Optional<Layout> opt = layoutStore.getActiveLayout();
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        try {
+            String json = mapper.writeValueAsString(opt.get());
+            broadcast.broadcastNamed("layout", json);
+            return ResponseEntity.ok(opt.get());
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Helper: wrap a raw JSON string in a ResponseEntity with the right content type.
+    private ResponseEntity<String> jsonResponse(String json) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json);
     }
 }

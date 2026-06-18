@@ -1135,6 +1135,201 @@
         .grid-2, .health-grid, .grid-3 { grid-template-columns: 1fr; }
         .hero-row { flex-direction: column; align-items: stretch; }
     }
+
+    /* ═══ LAYOUT EDITOR ═══ */
+    .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+    .le-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 18px; }
+    .le-toolbar-left, .le-toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .le-toolbar-lbl { font-size: 12px; color: var(--text-2); font-weight: 500; }
+    .le-toolbar-sep { width: 1px; height: 20px; background: var(--divider); margin: 0 6px; }
+    .le-toolbar-num {
+        width: 78px;
+        background: var(--surface-2); color: var(--text);
+        border: 1px solid var(--border); border-radius: 6px;
+        padding: 6px 8px; font-size: 12px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+        text-align: right;
+    }
+    .le-toolbar-num:focus { outline: none; border-color: var(--navy); }
+    .le-toolbar select {
+        background: var(--surface-2); color: var(--text);
+        border: 1px solid var(--border); border-radius: 8px;
+        padding: 7px 10px; font-size: 13px; font-family: inherit; min-width: 180px;
+    }
+    .le-toolbar-note { font-size: 12px; color: var(--warn); font-weight: 500; }
+
+    .le-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr 340px;
+        gap: 14px;
+        margin-top: 14px;
+        align-items: stretch;
+    }
+    .le-col { padding: 16px; display: flex; flex-direction: column; min-height: 0; }
+
+    /* Sources column */
+    .le-sources-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .le-source-item {
+        border: 1px solid var(--border); border-radius: var(--r);
+        background: var(--surface-2);
+        padding: 10px;
+        display: flex; flex-direction: column; gap: 6px;
+    }
+    .le-source-item.editing { border-color: var(--navy); }
+    .le-source-row { display: flex; align-items: center; gap: 8px; }
+    .le-source-name { font-weight: 600; font-size: 13px; color: var(--text); flex: 1; word-break: break-all; }
+    .le-source-id { font-size: 11px; color: var(--text-3); }
+    .le-source-url { font-size: 11px; color: var(--text-2); word-break: break-all; }
+    .le-source-meta { font-size: 11px; color: var(--text-3); display: flex; gap: 10px; }
+    .le-source-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .le-source-actions .btn { flex: 1; }
+    .le-source-form { display: flex; flex-direction: column; gap: 6px; }
+    .le-source-form label { font-size: 11px; color: var(--text-2); font-weight: 500; margin-top: 4px; }
+    .le-source-form input {
+        background: var(--surface); color: var(--text);
+        border: 1px solid var(--border); border-radius: 6px;
+        padding: 6px 8px; font-size: 12px; font-family: inherit;
+    }
+    .le-source-form input:focus { outline: none; border-color: var(--navy); }
+    .le-add-btn { width: 100%; }
+
+    /* Canvas column */
+    .le-canvas-col { display: flex; flex-direction: column; }
+    .le-palette { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }
+    .palette-label { font-size: 12px; color: var(--text-2); font-weight: 500; margin-right: 4px; }
+    .le-canvas-wrap {
+        width: 100%; overflow: auto;
+        background: repeating-linear-gradient(45deg, var(--surface-2), var(--surface-2) 8px, var(--surface-3) 8px, var(--surface-3) 16px);
+        border: 1px solid var(--border-2); border-radius: var(--r);
+        padding: 12px;
+    }
+    .le-canvas {
+        position: relative;
+        width: 921px; height: 518px;
+        background: #0b1018;
+        border-radius: 4px;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, var(--shadow);
+        overflow: hidden;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    .le-canvas-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); margin-top: 8px; padding: 0 4px; }
+    .le-canvas-info .mono, .le-canvas-info span { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    .le-widget {
+        position: absolute;
+        border: 1.5px dashed rgba(137, 180, 250, 0.55);
+        background: rgba(137, 180, 250, 0.08);
+        border-radius: 6px;
+        cursor: grab;
+        user-select: none;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 12px; color: rgba(255,255,255,0.85);
+        text-align: center;
+        overflow: hidden;
+        transition: border-color .12s, background .12s;
+    }
+    .le-widget:hover { background: rgba(137, 180, 250, 0.16); }
+    .le-widget.dragging { cursor: grabbing; transition: none; }
+    .le-widget.selected { border-style: solid; border-color: #fab387; background: rgba(250, 179, 135, 0.16); box-shadow: 0 0 0 2px rgba(250,179,135,0.25); }
+    .le-widget .lew-type { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+    .le-widget .lew-label { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .le-widget .lew-path { font-size: 10px; opacity: 0.65; margin-top: 4px; word-break: break-all; padding: 0 4px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .le-widget-handle {
+        position: absolute;
+        right: -5px; bottom: -5px;
+        width: 12px; height: 12px;
+        background: #fab387;
+        border: 2px solid #0b1018;
+        border-radius: 50%;
+        cursor: nwse-resize;
+        opacity: 0;
+        transition: opacity .15s;
+    }
+    .le-widget.selected .le-widget-handle { opacity: 1; }
+    .le-widget-remove {
+        position: absolute;
+        top: 2px; right: 4px;
+        width: 18px; height: 18px;
+        background: transparent;
+        color: rgba(255,255,255,0.65);
+        border: none;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+        display: none;
+    }
+    .le-widget.selected .le-widget-remove { display: block; }
+    .le-widget-remove:hover { color: var(--err); }
+
+    /* Sources column scrolls if many sources */
+    .le-sources-list { overflow-y: auto; flex: 1; min-height: 0; }
+
+    /* Config column: match canvas column height with internal scroll so
+       scale/offset/min/max/x/y/w/h never hang past the canvas card. */
+    .le-config-col { overflow: hidden; }
+    .le-config-body { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; min-height: 0; padding-right: 6px; }
+    .le-empty-hint { font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 12px 4px; }
+    .le-help-banner {
+        font-size: 12px; line-height: 1.45;
+        color: var(--text-2);
+        background: var(--info-bg);
+        border: 1px solid var(--info-border);
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+    .le-help-banner b { color: var(--info); }
+    .le-help-banner em { color: var(--text); font-style: normal; font-weight: 600; }
+    .le-help-inline { font-weight: 400; font-size: 11px; color: var(--text-3); margin-left: 6px; }
+    .le-probe-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; }
+    .le-config-row { display: flex; flex-direction: column; gap: 4px; }
+    .le-config-row label { font-size: 11px; color: var(--text-2); font-weight: 500; }
+    .le-config-row input, .le-config-row select {
+        background: var(--surface-2); color: var(--text);
+        border: 1px solid var(--border); border-radius: 6px;
+        padding: 6px 8px; font-size: 13px; font-family: inherit;
+    }
+    .le-config-row input:focus, .le-config-row select:focus { outline: none; border-color: var(--navy); }
+    .le-config-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .le-config-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+    .le-config-divider { height: 1px; background: var(--divider); margin: 4px 0; }
+    .le-config-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .le-config-actions .btn { flex: 1; }
+
+    /* JSON probe tree */
+    .le-probe-box {
+        max-height: 260px; overflow: auto;
+        border: 1px solid var(--border); border-radius: 6px;
+        background: var(--surface-2);
+        padding: 8px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 11.5px;
+        color: var(--text);
+        line-height: 1.45;
+    }
+    .le-probe-empty { color: var(--text-3); font-style: italic; padding: 12px; text-align: center; }
+    .le-probe-status { font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+    .le-probe-key { color: var(--info); }
+    .le-probe-str { color: var(--ok); }
+    .le-probe-num { color: var(--warn); }
+    .le-probe-leaf {
+        cursor: pointer; padding: 1px 4px; border-radius: 3px;
+        display: inline-block;
+    }
+    .le-probe-leaf:hover { background: rgba(137, 180, 250, 0.18); }
+    .le-probe-leaf.picked { background: rgba(250, 179, 135, 0.25); }
+    .le-probe-indent { padding-left: 14px; }
+
+    @media (max-width: 1400px) {
+        .le-grid { grid-template-columns: 260px 1fr 320px; }
+    }
+    @media (max-width: 1200px) {
+        .le-grid { grid-template-columns: 1fr; }
+        .le-canvas-col { order: -1; }
+    }
 </style>
 </head>
 <body>
@@ -1163,6 +1358,11 @@
             Glasses Preview
             <span class="nav-badge">demo</span>
         </div>
+        <div class="nav-item" data-page="layout" data-dev-only onclick="showPage('layout', this)">
+            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg></span>
+            Layout Editor
+            <span class="nav-badge">new</span>
+        </div>
 
         <div class="nav-section" data-dev-only>Features</div>
         <div class="nav-item" data-page="camera" data-dev-only onclick="showPage('camera', this)">
@@ -1174,11 +1374,6 @@
             Camera Settings
         </div>
 
-        <div class="nav-section" data-dev-only>Configuration</div>
-        <div class="nav-item" data-page="app-settings" data-dev-only onclick="showPage('app-settings', this)">
-            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2.5"></rect><path d="M11 18h2"></path></svg></span>
-            App Settings
-        </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -1544,56 +1739,71 @@
             </div>
         </div>
 
-        <!-- ══════════ APP SETTINGS ══════════ -->
-        <div class="page" id="page-app-settings">
-            <div class="card">
-                <div class="section-label">Gauge ranges <span class="sec-count">3 gauges</span></div>
-                <div class="gauge-table">
-                    <div class="gauge-row">
-                        <span class="gauge-label"><span class="gauge-label-ico">A</span>Amperage</span>
-                        <div class="range-inputs">
-                            <input type="number" id="a-amperageMin" placeholder="Min">
-                            <span class="range-dash">→</span>
-                            <input type="number" id="a-amperageMax" placeholder="Max">
-                            <span class="range-unit">A</span>
+
+        <!-- ══════════ LAYOUT EDITOR ══════════ -->
+        <div class="page" id="page-layout">
+
+            <!-- Top toolbar: preset selector + display resolution + push -->
+            <div class="card le-toolbar">
+                <div class="le-toolbar-left">
+                    <label class="le-toolbar-lbl">Active preset</label>
+                    <select id="le-preset-select" onchange="leSwitchPreset(this.value)"></select>
+                    <button class="btn btn-ghost" onclick="leNewPreset()">+ New</button>
+                    <button class="btn btn-ghost" onclick="leDeletePreset()">Delete</button>
+
+                    <span class="le-toolbar-sep"></span>
+                    <label class="le-toolbar-lbl">Display</label>
+                    <input type="number" class="le-toolbar-num" id="le-display-w" min="100" max="4000" step="1" title="Glasses display width in pixels" oninput="leSetDisplay('w', this.value)">
+                    <span class="le-toolbar-lbl">×</span>
+                    <input type="number" class="le-toolbar-num" id="le-display-h" min="100" max="4000" step="1" title="Glasses display height in pixels" oninput="leSetDisplay('h', this.value)">
+                    <span class="le-toolbar-lbl">px</span>
+                </div>
+                <div class="le-toolbar-right">
+                    <span class="le-toolbar-note" id="le-dirty-note"></span>
+                    <button class="btn btn-ghost" onclick="leSaveLayout()">Save</button>
+                    <button class="btn btn-primary" id="le-push-btn" onclick="lePushLayout()">Push to glasses</button>
+                </div>
+            </div>
+
+            <!-- Three columns -->
+            <div class="le-grid">
+
+                <!-- Sources column -->
+                <div class="card le-col">
+                    <div class="section-label">Sensor sources <span class="sec-count" id="le-source-count">0</span></div>
+                    <div class="le-sources-list" id="le-sources-list"></div>
+                    <button class="btn btn-primary le-add-btn" onclick="leAddSource()">+ Add source</button>
+                </div>
+
+                <!-- Canvas column -->
+                <div class="card le-col le-canvas-col">
+                    <div class="le-palette">
+                        <span class="palette-label">Add widget</span>
+                        <button class="btn btn-ghost btn-sm" onclick="leAddWidget('gauge')">Gauge</button>
+                        <button class="btn btn-ghost btn-sm" onclick="leAddWidget('heatbar')">Heat bar</button>
+                        <button class="btn btn-ghost btn-sm" onclick="leAddWidget('number')">Number</button>
+                        <button class="btn btn-ghost btn-sm" onclick="leAddWidget('linegraph')">Line graph</button>
+                    </div>
+
+                    <div class="le-canvas-wrap">
+                        <div class="le-canvas" id="le-canvas">
+                            <!-- widgets are injected as absolute-positioned divs -->
                         </div>
                     </div>
-                    <div class="gauge-row">
-                        <span class="gauge-label"><span class="gauge-label-ico">V</span>Voltage</span>
-                        <div class="range-inputs">
-                            <input type="number" id="a-voltageMin" step="0.1" placeholder="Min">
-                            <span class="range-dash">→</span>
-                            <input type="number" id="a-voltageMax" step="0.1" placeholder="Max">
-                            <span class="range-unit">V</span>
-                        </div>
-                    </div>
-                    <div class="gauge-row">
-                        <span class="gauge-label"><span class="gauge-label-ico">G</span>Gas flow</span>
-                        <div class="range-inputs">
-                            <input type="number" id="a-gasFlowMin" step="0.1" placeholder="Min">
-                            <span class="range-dash">→</span>
-                            <input type="number" id="a-gasFlowMax" step="0.1" placeholder="Max">
-                            <span class="range-unit">l/min</span>
-                        </div>
+                    <div class="le-canvas-info">
+                        <span id="le-display-info">Glasses display</span>
+                        <span id="le-selection-info">no selection</span>
                     </div>
                 </div>
 
-                <div class="section-label">Display</div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Heatbar duration <span style="color:var(--text-3);font-weight:400;">seconds</span></label>
-                        <input type="number" id="a-heatbarDuration" min="5" max="300">
-                        <span class="form-hint">How many seconds of porosity history to show.</span>
+                <!-- Config column -->
+                <div class="card le-col le-config-col">
+                    <div class="section-label" id="le-config-title">Widget config</div>
+                    <div class="le-config-body" id="le-config-body">
+                        <p class="le-empty-hint">Click a widget on the canvas to edit it, or add one from the palette above.</p>
                     </div>
                 </div>
 
-                <div class="card-actions">
-                    <span class="action-note">Android fetches these on app launch via GET /api/app-settings.</span>
-                    <div class="card-actions-right">
-                        <button class="btn btn-ghost" onclick="loadAppSettings()">Reload</button>
-                        <button class="btn btn-primary" id="saveAppBtn" onclick="saveAppSettings()">Push to app</button>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -1639,9 +1849,9 @@
     const pages = {
         'overview':        { title: 'Overview',           sub: 'AI data stream and glasses connection' },
         'glasses':         { title: 'Glasses Preview',   sub: 'Live mirror of the Android HUD' },
+        'layout':          { title: 'Layout Editor',     sub: 'Arrange widgets and bind them to sensor data' },
         'camera':          { title: 'Camera & Detection', sub: 'Proof-of-concept: disable when not in use' },
-        'server-settings': { title: 'Camera Settings',    sub: 'Detection parameters and frame capture rate' },
-        'app-settings':    { title: 'App Settings',       sub: 'Configuration pushed to Android glasses' }
+        'server-settings': { title: 'Camera Settings',    sub: 'Detection parameters and frame capture rate' }
     };
 
     function showPage(name, navEl) {
@@ -1659,7 +1869,7 @@
 
         if (name === 'camera')          loadVideos();
         if (name === 'server-settings') loadServerSettings();
-        if (name === 'app-settings')    loadAppSettings();
+        if (name === 'layout')          leLoadAll();
         if (name === 'glasses') {
             if (!glassesPaused) startGlassesSim();
         } else {
@@ -1674,7 +1884,7 @@
     })();
 
     // ── Profile / Role (user vs developer) ───────────────
-    const DEV_ONLY_PAGES = ['camera', 'server-settings', 'app-settings'];
+    const DEV_ONLY_PAGES = ['camera', 'server-settings', 'layout'];
     const ROLE_META = {
         user:      { name: 'User',      avatar: 'U',   sub: 'Session operator' },
         developer: { name: 'Developer', avatar: 'DEV', sub: 'Session operator · full access' }
@@ -1969,43 +2179,6 @@
         }).then(() => flash('saveServerBtn', 'Saved ✓')).catch(() => flash('saveServerBtn', 'Saved ✓ (demo)'));
     }
 
-    // ── App settings ───────────────────────────────────
-    function loadAppSettings() {
-        fetch('/api/app-settings').then(r => r.json()).then(s => {
-            document.getElementById('a-voltageMin').value        = s.voltageMin        ?? 18;
-            document.getElementById('a-voltageMax').value        = s.voltageMax        ?? 28;
-            document.getElementById('a-amperageMin').value       = s.amperageMin       ?? 80;
-            document.getElementById('a-amperageMax').value       = s.amperageMax       ?? 220;
-            document.getElementById('a-gasFlowMin').value        = s.gasFlowMin        ?? 10;
-            document.getElementById('a-gasFlowMax').value        = s.gasFlowMax        ?? 20;
-            document.getElementById('a-heatbarDuration').value   = s.heatbarDuration   ?? 30;
-        }).catch(() => {
-            document.getElementById('a-voltageMin').value        = 18;
-            document.getElementById('a-voltageMax').value        = 28;
-            document.getElementById('a-amperageMin').value       = 80;
-            document.getElementById('a-amperageMax').value       = 220;
-            document.getElementById('a-gasFlowMin').value        = 10;
-            document.getElementById('a-gasFlowMax').value        = 20;
-            document.getElementById('a-heatbarDuration').value   = 30;
-        });
-    }
-
-    function saveAppSettings() {
-        fetch('/api/app-settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                voltageMin:        parseFloat(document.getElementById('a-voltageMin').value),
-                voltageMax:        parseFloat(document.getElementById('a-voltageMax').value),
-                amperageMin:       parseFloat(document.getElementById('a-amperageMin').value),
-                amperageMax:       parseFloat(document.getElementById('a-amperageMax').value),
-                gasFlowMin:        parseFloat(document.getElementById('a-gasFlowMin').value),
-                gasFlowMax:        parseFloat(document.getElementById('a-gasFlowMax').value),
-                heatbarDuration:   parseInt(document.getElementById('a-heatbarDuration').value)
-            })
-        }).then(() => flash('saveAppBtn', 'Pushed ✓')).catch(() => flash('saveAppBtn', 'Pushed ✓ (demo)'));
-    }
-
     // ── Videos ─────────────────────────────────────────
     function loadVideos() {
         fetch('/api/videos').then(r => r.json()).then(videos => {
@@ -2262,9 +2435,759 @@
     });
     try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch {}
 
+    // ══════════════════════════════════════════════════════════════════════
+    // LAYOUT EDITOR
+    //
+    // Three panels: sources (left), canvas (center), widget config (right).
+    // The operator picks sensor sources, drops widgets on the canvas, binds
+    // each widget to a JSON field from one of those sources, and presses
+    // "Push to glasses" to broadcast the layout as a named SSE event "layout".
+    //
+    // The dashboard speaks to the server over four endpoint families:
+    //   /api/sources                    list / create / update / delete
+    //   /api/sources/{id}/probe         one-shot JSON sample for the picker
+    //   /api/layouts(/{name})           list / create / update / delete presets
+    //   /api/layouts/active             which preset is currently active
+    //   /api/layouts/active/push        broadcast active preset to the glasses
+    // ══════════════════════════════════════════════════════════════════════
+
+    const DEFAULT_DISPLAY_W = 921;     // BT-300 display width in pixels
+    const DEFAULT_DISPLAY_H = 518;     // BT-300 display height in pixels
+    const MIN_W = 40;
+    const MIN_H = 40;
+
+    function leDisplayW() { const l = leActive(); return (l && l.displayW > 0) ? l.displayW : DEFAULT_DISPLAY_W; }
+    function leDisplayH() { const l = leActive(); return (l && l.displayH > 0) ? l.displayH : DEFAULT_DISPLAY_H; }
+
+    // Reasonable defaults so a freshly added widget shows up on screen and
+    // has plausible dimensions for its type.
+    const WIDGET_DEFAULTS = {
+        gauge:     { w: 240, h: 240, label: 'NEW GAUGE',     unit: 'A',     min: 0, max: 100 },
+        heatbar:   { w: 600, h: 60,  label: 'NEW HEAT BAR',  unit: '',      min: 0, max: 1   },
+        number:    { w: 200, h: 100, label: 'NEW NUMBER',    unit: '',      min: 0, max: 100 },
+        linegraph: { w: 360, h: 200, label: 'NEW GRAPH',     unit: '',      min: 0, max: 100 }
+    };
+
+    // Local mirror of server state. The active layout is mutated freely; the
+    // "dirty" flag tracks unsaved changes so Push warns the operator first.
+    const leState = {
+        sources:        [],
+        layouts:        [],     // [{name, widgets}]
+        activeName:     '',
+        selectedId:     null,
+        dirty:          false,
+        probedSource:   null,
+        probedJson:     null,
+        editingSources: new Set()   // source ids currently in edit-form mode
+    };
+
+    // Active layout helper. Falls back to a synthetic empty layout if none
+    // has loaded yet so callers don't have to null-check.
+    function leActive() {
+        return leState.layouts.find(l => l.name === leState.activeName)
+            || { name: leState.activeName || '', widgets: [] };
+    }
+
+    function leMarkDirty(d) {
+        leState.dirty = d;
+        const note = document.getElementById('le-dirty-note');
+        if (note) note.textContent = d ? '● unsaved changes' : '';
+    }
+
+    // ── Loading ────────────────────────────────────────────────────────────
+
+    async function leLoadAll() {
+        try {
+            const [srcRes, lyRes, actRes] = await Promise.all([
+                fetch('/api/sources'),
+                fetch('/api/layouts'),
+                fetch('/api/layouts/active')
+            ]);
+            leState.sources    = await srcRes.json();
+            leState.layouts    = await lyRes.json();
+            const act          = actRes.ok ? await actRes.json() : { name: '' };
+            leState.activeName = act.name;
+            leState.selectedId = null;
+            leMarkDirty(false);
+            leRenderAll();
+        } catch (e) {
+            console.error('[layout] load failed', e);
+        }
+    }
+
+    function leRenderAll() {
+        leRenderSources();
+        leRenderPresetSelect();
+        leRenderCanvas();
+        leRenderConfig();
+    }
+
+    // ── Sources panel ──────────────────────────────────────────────────────
+
+    function leRenderSources() {
+        const list = document.getElementById('le-sources-list');
+        const count = document.getElementById('le-source-count');
+        if (!list) return;
+        count.textContent = leState.sources.length;
+        list.innerHTML = '';
+        for (const s of leState.sources) {
+            list.appendChild(
+                leState.editingSources.has(s.id) ? leSourceEditCard(s) : leSourceViewCard(s)
+            );
+        }
+    }
+
+    function leSourceViewCard(s) {
+        const el = document.createElement('div');
+        el.className = 'le-source-item';
+        el.innerHTML = `
+            <div class="le-source-row">
+                <span class="le-source-name">${escapeHtml(s.name || s.id)}</span>
+                <span class="le-source-id mono">${escapeHtml(s.id)}</span>
+            </div>
+            <div class="le-source-url mono">${escapeHtml(s.url)}</div>
+            <div class="le-source-meta">
+                <span>poll ${s.pollMs}ms</span>
+                <span>${s.enabled ? 'enabled' : 'disabled'}</span>
+            </div>
+            <div class="le-source-actions">
+                <button class="btn btn-ghost btn-sm" onclick="leProbeSource('${s.id}')">Probe</button>
+                <button class="btn btn-ghost btn-sm" onclick="leToggleEditSource('${s.id}')">Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="leDeleteSource('${s.id}')">Delete</button>
+            </div>`;
+        return el;
+    }
+
+    function leSourceEditCard(s) {
+        const isNew = !leState.sources.some(x => x.id === s.id && x === s);
+        const el = document.createElement('div');
+        el.className = 'le-source-item editing';
+        el.innerHTML = `
+            <div class="le-source-form">
+                <label>ID (unique, used as SSE event name)</label>
+                <input type="text" data-f="id" value="${escapeAttr(s.id || '')}">
+                <label>Name</label>
+                <input type="text" data-f="name" value="${escapeAttr(s.name || '')}">
+                <label>URL</label>
+                <input type="text" data-f="url" value="${escapeAttr(s.url || '')}">
+                <label>Poll interval (ms)</label>
+                <input type="number" data-f="pollMs" min="100" step="100" value="${s.pollMs || 1000}">
+                <label>
+                    <input type="checkbox" data-f="enabled" ${s.enabled !== false ? 'checked' : ''}>
+                    Enabled
+                </label>
+            </div>
+            <div class="le-source-actions">
+                <button class="btn btn-primary btn-sm" data-act="save">Save</button>
+                <button class="btn btn-ghost btn-sm" data-act="cancel">Cancel</button>
+            </div>`;
+        el.querySelector('[data-act="save"]').onclick   = () => leSaveSource(el, s.id || null);
+        el.querySelector('[data-act="cancel"]').onclick = () => leCancelEditSource(s.id);
+        return el;
+    }
+
+    function leToggleEditSource(id) {
+        if (leState.editingSources.has(id)) leState.editingSources.delete(id);
+        else                                leState.editingSources.add(id);
+        leRenderSources();
+    }
+
+    function leCancelEditSource(id) {
+        leState.editingSources.delete(id || '');
+        leRenderSources();
+    }
+
+    function leAddSource() {
+        // Insert a placeholder source with no id; the edit card handles input.
+        const placeholder = { id: '', name: '', url: '', pollMs: 1000, enabled: true };
+        leState.sources.push(placeholder);
+        leState.editingSources.add('');
+        leRenderSources();
+    }
+
+    async function leSaveSource(el, originalId) {
+        const inputs = el.querySelectorAll('[data-f]');
+        const payload = { pollMs: 1000, enabled: true };
+        inputs.forEach(i => {
+            const f = i.dataset.f;
+            payload[f] = (i.type === 'checkbox') ? i.checked
+                       : (i.type === 'number')   ? Number(i.value)
+                       : i.value;
+        });
+        if (!payload.id || !payload.url) {
+            alert('ID and URL are required.');
+            return;
+        }
+        const renaming = originalId && originalId !== payload.id;
+        if (renaming && leState.sources.some(s => s.id === payload.id)) {
+            alert('A source with id "' + payload.id + '" already exists.');
+            return;
+        }
+        try {
+            // Create-or-update the source under its (possibly new) id first,
+            // so a failed write does not leave us with no source at all.
+            const r = await fetch('/api/sources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!r.ok) throw new Error('save failed: ' + r.status);
+            // Then delete the old id if this was a rename. Widgets bound to the
+            // old source id keep their binding string — the operator may want
+            // to repoint them in the editor next.
+            if (renaming) {
+                try { await fetch('/api/sources/' + encodeURIComponent(originalId), { method: 'DELETE' }); }
+                catch (_) {}
+            }
+            leState.editingSources.delete(originalId || '');
+            leState.editingSources.delete(payload.id);
+            await leLoadAll();
+        } catch (e) {
+            alert('Could not save source: ' + e.message);
+        }
+    }
+
+    async function leDeleteSource(id) {
+        if (!confirm('Delete source "' + id + '"? Widgets bound to it will lose their data.')) return;
+        try {
+            const r = await fetch('/api/sources/' + encodeURIComponent(id), { method: 'DELETE' });
+            if (!r.ok && r.status !== 404) throw new Error(r.status);
+            await leLoadAll();
+        } catch (e) {
+            alert('Delete failed: ' + e.message);
+        }
+    }
+
+    // ── Probe + JSON tree picker ───────────────────────────────────────────
+
+    async function leProbeSource(id) {
+        try {
+            const r = await fetch('/api/sources/' + encodeURIComponent(id) + '/probe');
+            if (r.status === 204) {
+                leState.probedSource = id;
+                leState.probedJson   = null;
+                leRenderConfig();
+                return;
+            }
+            if (!r.ok) throw new Error(r.status);
+            const text = await r.text();
+            leState.probedSource = id;
+            try { leState.probedJson = JSON.parse(text); }
+            catch { leState.probedJson = text; }
+            leRenderConfig();
+        } catch (e) {
+            leState.probedSource = id;
+            leState.probedJson   = { error: 'probe failed: ' + e.message };
+            leRenderConfig();
+        }
+    }
+
+    // Walks a JSON value recursively and emits a clickable tree. Clicking any
+    // leaf writes its path into the selected widget's jsonPath field.
+    function leBuildJsonTree(value, basePath, container) {
+        if (value === null || typeof value !== 'object') {
+            const leaf = document.createElement('span');
+            leaf.className = 'le-probe-leaf';
+            leaf.dataset.path = basePath;
+            const display = (typeof value === 'string') ? '"' + value + '"' : String(value);
+            const cls = (typeof value === 'string') ? 'le-probe-str' : 'le-probe-num';
+            leaf.innerHTML = '<span class="' + cls + '">' + escapeHtml(display) + '</span>';
+            leaf.onclick = () => lePickJsonPath(basePath);
+            container.appendChild(leaf);
+            return;
+        }
+        if (Array.isArray(value)) {
+            container.appendChild(textNode('['));
+            // Wildcard line first so the operator can bind "all elements" as
+            // one row, without scrolling past the full expansion.
+            if (value.length > 0) {
+                const wild = document.createElement('div');
+                wild.className = 'le-probe-indent';
+                const span = document.createElement('span');
+                span.className = 'le-probe-leaf';
+                span.dataset.path = basePath + '[*]';
+                span.innerHTML = '<span class="le-probe-key">[*]</span> <span class="le-probe-num">(all ' + value.length + ' elements)</span>';
+                span.onclick = () => lePickJsonPath(basePath + '[*]');
+                wild.appendChild(span);
+                container.appendChild(wild);
+            }
+            // Every element, so the operator can also pick a specific index.
+            for (let i = 0; i < value.length; i++) {
+                const row = document.createElement('div');
+                row.className = 'le-probe-indent';
+                row.appendChild(textNode('[' + i + ']: '));
+                leBuildJsonTree(value[i], basePath + '[' + i + ']', row);
+                container.appendChild(row);
+            }
+            container.appendChild(textNode(']'));
+            return;
+        }
+        container.appendChild(textNode('{'));
+        for (const k of Object.keys(value)) {
+            const row = document.createElement('div');
+            row.className = 'le-probe-indent';
+            row.innerHTML = '<span class="le-probe-key">' + escapeHtml(k) + '</span>: ';
+            leBuildJsonTree(value[k], basePath ? basePath + '.' + k : k, row);
+            container.appendChild(row);
+        }
+        container.appendChild(textNode('}'));
+    }
+
+    function textNode(t) { return document.createTextNode(t); }
+
+    function lePickJsonPath(path) {
+        const widget = leActive().widgets.find(w => w.id === leState.selectedId);
+        if (!widget) return;
+        widget.jsonPath = path;
+        leMarkDirty(true);
+        leRenderConfig();
+        leRenderCanvas();
+    }
+
+    // ── Canvas + widgets ───────────────────────────────────────────────────
+
+    function leRenderCanvas() {
+        const canvas = document.getElementById('le-canvas');
+        if (!canvas) return;
+        // Apply current layout's display dimensions so canvas always matches what
+        // will be pushed to the glasses.
+        canvas.style.width  = leDisplayW() + 'px';
+        canvas.style.height = leDisplayH() + 'px';
+        canvas.innerHTML = '';
+        const layout = leActive();
+        for (const w of layout.widgets) canvas.appendChild(leBuildWidget(w));
+        // Keep the display-resolution inputs in sync without overwriting focus.
+        const dw = document.getElementById('le-display-w');
+        const dh = document.getElementById('le-display-h');
+        if (dw && document.activeElement !== dw) dw.value = leDisplayW();
+        if (dh && document.activeElement !== dh) dh.value = leDisplayH();
+        const dinfo = document.getElementById('le-display-info');
+        if (dinfo) dinfo.textContent = `Glasses display ${leDisplayW()} × ${leDisplayH()}`;
+        const info = document.getElementById('le-selection-info');
+        if (info) {
+            if (leState.selectedId) {
+                const w = layout.widgets.find(x => x.id === leState.selectedId);
+                if (w) info.textContent = `${w.id} · x=${w.x} y=${w.y} w=${w.w} h=${w.h}`;
+                else   info.textContent = 'no selection';
+            } else info.textContent = `${leDisplayW()} × ${leDisplayH()}`;
+        }
+    }
+
+    function leSetDisplay(dim, raw) {
+        const val = Math.max(100, Math.min(4000, Number(raw) || 0));
+        const layout = leActive();
+        if (!layout || !layout.name) return;
+        if (dim === 'w') layout.displayW = val;
+        else             layout.displayH = val;
+        // Clip any widget that now sits outside the new bounds.
+        for (const w of layout.widgets) {
+            w.w = Math.min(w.w, layout.displayW);
+            w.h = Math.min(w.h, layout.displayH);
+            w.x = Math.min(w.x, layout.displayW - w.w);
+            w.y = Math.min(w.y, layout.displayH - w.h);
+            w.x = Math.max(0, w.x);
+            w.y = Math.max(0, w.y);
+        }
+        leMarkDirty(true);
+        leRenderCanvas();
+    }
+
+    function leBuildWidget(w) {
+        const el = document.createElement('div');
+        el.className = 'le-widget' + (w.id === leState.selectedId ? ' selected' : '');
+        el.style.left   = w.x + 'px';
+        el.style.top    = w.y + 'px';
+        el.style.width  = w.w + 'px';
+        el.style.height = w.h + 'px';
+        el.dataset.id   = w.id;
+        el.innerHTML = `
+            <button class="le-widget-remove" title="Remove">×</button>
+            <div class="lew-type">${escapeHtml(w.type)}</div>
+            <div class="lew-label">${escapeHtml(w.label || w.id)}</div>
+            ${w.jsonPath ? '<div class="lew-path">' + escapeHtml(w.jsonPath) + '</div>' : ''}
+            <div class="le-widget-handle"></div>`;
+        el.onpointerdown = (e) => leStartDrag(e, w.id);
+        el.querySelector('.le-widget-handle').onpointerdown = (e) => leStartResize(e, w.id);
+        el.querySelector('.le-widget-remove').onclick = (e) => { e.stopPropagation(); leRemoveWidget(w.id); };
+        return el;
+    }
+
+    function leAddWidget(type) {
+        const layout = leActive();
+        if (!layout.name) {
+            alert('No active layout. Create one first.');
+            return;
+        }
+        const defaults = WIDGET_DEFAULTS[type] || WIDGET_DEFAULTS.gauge;
+        const id = type + '-' + Math.random().toString(36).slice(2, 7);
+        // Stagger so consecutive adds don't perfectly overlap
+        const offset = (layout.widgets.length * 30) % 240;
+        const w = {
+            id, type,
+            label: defaults.label, unit: defaults.unit,
+            source: leState.sources[0] ? leState.sources[0].id : '',
+            jsonPath: '',
+            scale: 1, offset: 0,
+            min: defaults.min, max: defaults.max,
+            color: null,
+            x: 20 + offset, y: 20 + offset, w: defaults.w, h: defaults.h,
+            heatbarDuration: 30
+        };
+        layout.widgets.push(w);
+        leState.selectedId = id;
+        leMarkDirty(true);
+        leRenderCanvas();
+        leRenderConfig();
+    }
+
+    function leRemoveWidget(id) {
+        const layout = leActive();
+        layout.widgets = layout.widgets.filter(x => x.id !== id);
+        if (leState.selectedId === id) leState.selectedId = null;
+        leMarkDirty(true);
+        leRenderCanvas();
+        leRenderConfig();
+    }
+
+    // ── Drag & resize ──────────────────────────────────────────────────────
+
+    let leDrag = null;   // { id, type: 'move'|'resize', offX, offY }
+
+    function leStartDrag(e, id) {
+        // Ignore if the actual target is the handle or the remove button; their
+        // own handlers run because of stopPropagation / a different listener.
+        if (e.target.classList.contains('le-widget-handle')) return;
+        if (e.target.classList.contains('le-widget-remove')) return;
+        const canvas = document.getElementById('le-canvas');
+        const rect   = canvas.getBoundingClientRect();
+        const widget = leActive().widgets.find(w => w.id === id);
+        if (!widget) return;
+        leSelectWidget(id);
+        leDrag = {
+            id, type: 'move',
+            offX: (e.clientX - rect.left) - widget.x,
+            offY: (e.clientY - rect.top)  - widget.y
+        };
+        e.target.closest('.le-widget').classList.add('dragging');
+        e.preventDefault();
+    }
+
+    function leStartResize(e, id) {
+        const canvas = document.getElementById('le-canvas');
+        const rect   = canvas.getBoundingClientRect();
+        const widget = leActive().widgets.find(w => w.id === id);
+        if (!widget) return;
+        leSelectWidget(id);
+        leDrag = { id, type: 'resize' };
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    function leOnPointerMove(e) {
+        if (!leDrag) return;
+        const canvas = document.getElementById('le-canvas');
+        const rect   = canvas.getBoundingClientRect();
+        const widget = leActive().widgets.find(w => w.id === leDrag.id);
+        if (!widget) return;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const w_max = leDisplayW();
+        const h_max = leDisplayH();
+        if (leDrag.type === 'move') {
+            widget.x = Math.max(0, Math.min(w_max - widget.w, Math.round(x - leDrag.offX)));
+            widget.y = Math.max(0, Math.min(h_max - widget.h, Math.round(y - leDrag.offY)));
+        } else {
+            widget.w = Math.max(MIN_W, Math.min(w_max - widget.x, Math.round(x - widget.x)));
+            widget.h = Math.max(MIN_H, Math.min(h_max - widget.y, Math.round(y - widget.y)));
+        }
+        leMarkDirty(true);
+        leRenderCanvas();   // re-render keeps selection + sizes in sync
+        leRenderConfigPositionFields(); // light-touch update so inputs follow live
+    }
+
+    function leOnPointerUp() {
+        if (!leDrag) return;
+        leDrag = null;
+        document.querySelectorAll('.le-widget.dragging').forEach(e => e.classList.remove('dragging'));
+    }
+
+    window.addEventListener('pointermove', leOnPointerMove);
+    window.addEventListener('pointerup',   leOnPointerUp);
+
+    function leSelectWidget(id) {
+        leState.selectedId = id;
+        leRenderCanvas();
+        leRenderConfig();
+    }
+
+    // ── Config panel ───────────────────────────────────────────────────────
+
+    function leRenderConfig() {
+        const body  = document.getElementById('le-config-body');
+        const title = document.getElementById('le-config-title');
+        if (!body || !title) return;
+        const widget = leActive().widgets.find(w => w.id === leState.selectedId);
+        if (!widget) {
+            title.textContent = 'Widget config';
+            body.innerHTML = '<p class="le-empty-hint">Click a widget on the canvas to edit it, or add one from the palette above.</p>';
+            return;
+        }
+        title.innerHTML = 'Editing <span class="mono" style="font-size:11px;color:var(--text-3);">' + escapeHtml(widget.id) + '</span>';
+        const sourceOptions = leState.sources.map(
+            s => '<option value="' + escapeAttr(s.id) + '"' + (s.id === widget.source ? ' selected' : '') + '>' + escapeHtml(s.name || s.id) + '</option>'
+        ).join('');
+
+        body.innerHTML = `
+            <div class="le-help-banner">
+                <b>How to bind data:</b> pick a source, click <em>Fetch sample</em>, then click any value in the JSON tree to send that value into this widget.
+            </div>
+            <div class="le-config-row">
+                <label>Type</label>
+                <select data-w="type">
+                    <option value="gauge"     ${widget.type === 'gauge'     ? 'selected' : ''}>Gauge</option>
+                    <option value="heatbar"   ${widget.type === 'heatbar'   ? 'selected' : ''}>Heat bar</option>
+                    <option value="number"    ${widget.type === 'number'    ? 'selected' : ''}>Number</option>
+                    <option value="linegraph" ${widget.type === 'linegraph' ? 'selected' : ''}>Line graph</option>
+                </select>
+            </div>
+            <div class="le-config-row">
+                <label>Label</label>
+                <input type="text" data-w="label" value="${escapeAttr(widget.label || '')}">
+            </div>
+            <div class="le-config-row">
+                <label>Unit</label>
+                <input type="text" data-w="unit" value="${escapeAttr(widget.unit || '')}">
+            </div>
+            <div class="le-config-divider"></div>
+            <div class="le-config-row">
+                <label>Source</label>
+                <select data-w="source"><option value="">— none —</option>${sourceOptions}</select>
+            </div>
+            <div class="le-config-row">
+                <label>JSON path <span class="le-help-inline">type, or pick from the tree below</span></label>
+                <input type="text" data-w="jsonPath" placeholder="e.g. analog_rms_per_channel[3]" value="${escapeAttr(widget.jsonPath || '')}">
+            </div>
+            <button class="btn btn-primary btn-sm le-probe-btn" onclick="leProbeForSelected()">
+                <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:4px;"><path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path></svg>
+                Fetch sample from source
+            </button>
+            <div id="le-probe-mount"></div>
+            <div class="le-config-divider"></div>
+            <div class="le-config-row-2">
+                <div class="le-config-row"><label>Scale</label>
+                    <input type="number" step="0.01" data-w="scale" value="${widget.scale}"></div>
+                <div class="le-config-row"><label>Offset</label>
+                    <input type="number" step="0.01" data-w="offset" value="${widget.offset}"></div>
+            </div>
+            <div class="le-config-row-2">
+                <div class="le-config-row"><label>Min</label>
+                    <input type="number" step="0.01" data-w="min" value="${widget.min}"></div>
+                <div class="le-config-row"><label>Max</label>
+                    <input type="number" step="0.01" data-w="max" value="${widget.max}"></div>
+            </div>
+            ${widget.type === 'heatbar' ? `
+            <div class="le-config-row">
+                <label>History window <span class="le-help-inline">seconds shown on the heat bar</span></label>
+                <input type="number" min="1" max="600" step="1" data-w="heatbarDuration" value="${widget.heatbarDuration || 30}">
+            </div>` : ''}
+            <div class="le-config-divider"></div>
+            <div class="le-config-row-4" id="le-pos-row">
+                <div class="le-config-row"><label>X</label>
+                    <input type="number" data-w="x" value="${widget.x}"></div>
+                <div class="le-config-row"><label>Y</label>
+                    <input type="number" data-w="y" value="${widget.y}"></div>
+                <div class="le-config-row"><label>W</label>
+                    <input type="number" data-w="w" value="${widget.w}"></div>
+                <div class="le-config-row"><label>H</label>
+                    <input type="number" data-w="h" value="${widget.h}"></div>
+            </div>
+            <div class="le-config-actions">
+                <button class="btn btn-ghost btn-sm" onclick="leRemoveWidget('${widget.id}')">Delete widget</button>
+            </div>
+        `;
+        body.querySelectorAll('[data-w]').forEach(el => {
+            el.oninput = () => {
+                const f   = el.dataset.w;
+                let   val = el.value;
+                if (el.type === 'number') val = Number(val);
+                widget[f] = val;
+                leMarkDirty(true);
+                if (['x','y','w','h','label','jsonPath'].includes(f)) leRenderCanvas();
+            };
+        });
+
+        // Mount the JSON probe tree as LIVE DOM so click handlers survive
+        // (innerHTML serialization would strip the onclick listeners).
+        leMountProbeBox(document.getElementById('le-probe-mount'), widget);
+    }
+
+    function leProbeForSelected() {
+        const w = leActive().widgets.find(x => x.id === leState.selectedId);
+        if (!w || !w.source) { alert('Select a source first.'); return; }
+        leProbeSource(w.source);
+    }
+
+    // Build the JSON probe tree directly into the target container as live DOM
+    // so the onclick handlers attached by leBuildJsonTree are preserved.
+    function leMountProbeBox(container, widget) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (leState.probedSource !== widget.source) return;
+        const status = document.createElement('div');
+        status.className = 'le-probe-status';
+        status.textContent = 'Probe sample from "' + leState.probedSource + '" · click a value to bind';
+        const tree = document.createElement('div');
+        tree.className = 'le-probe-box';
+        if (leState.probedJson == null) {
+            const e = document.createElement('div');
+            e.className = 'le-probe-empty';
+            e.textContent = 'No data cached. Start polling first, or the source is unreachable.';
+            tree.appendChild(e);
+        } else if (typeof leState.probedJson === 'object' && leState.probedJson.error) {
+            const e = document.createElement('div');
+            e.className = 'le-probe-empty';
+            e.style.color = 'var(--err)';
+            e.textContent = leState.probedJson.error;
+            tree.appendChild(e);
+        } else {
+            leBuildJsonTree(leState.probedJson, '', tree);
+        }
+        // Highlight the currently-picked path if it exists in the tree
+        if (widget.jsonPath) {
+            tree.querySelectorAll('.le-probe-leaf').forEach(l => {
+                if (l.dataset && l.dataset.path === widget.jsonPath) l.classList.add('picked');
+            });
+        }
+        container.appendChild(status);
+        container.appendChild(tree);
+    }
+
+    // Light update of the X/Y/W/H inputs during a live drag so they follow.
+    function leRenderConfigPositionFields() {
+        const w = leActive().widgets.find(x => x.id === leState.selectedId);
+        if (!w) return;
+        const row = document.getElementById('le-pos-row');
+        if (!row) return;
+        const map = { x: w.x, y: w.y, w: w.w, h: w.h };
+        row.querySelectorAll('[data-w]').forEach(el => {
+            const f = el.dataset.w;
+            if (map[f] != null && document.activeElement !== el) el.value = map[f];
+        });
+        const info = document.getElementById('le-selection-info');
+        if (info) info.textContent = `${w.id} · x=${w.x} y=${w.y} w=${w.w} h=${w.h}`;
+    }
+
+    // ── Preset selector ────────────────────────────────────────────────────
+
+    function leRenderPresetSelect() {
+        const sel = document.getElementById('le-preset-select');
+        if (!sel) return;
+        sel.innerHTML = leState.layouts.map(
+            l => '<option value="' + escapeAttr(l.name) + '"' + (l.name === leState.activeName ? ' selected' : '') + '>' + escapeHtml(l.name) + '</option>'
+        ).join('');
+    }
+
+    async function leSwitchPreset(name) {
+        if (leState.dirty && !confirm('You have unsaved changes. Switch presets anyway?')) {
+            leRenderPresetSelect();
+            return;
+        }
+        try {
+            const r = await fetch('/api/layouts/active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!r.ok) throw new Error(r.status);
+            await leLoadAll();
+        } catch (e) {
+            alert('Could not switch preset: ' + e.message);
+        }
+    }
+
+    async function leNewPreset() {
+        const name = prompt('Name for the new preset:');
+        if (!name) return;
+        if (leState.layouts.some(l => l.name === name)) {
+            alert('A preset with that name already exists.');
+            return;
+        }
+        try {
+            const body = JSON.stringify({ name, widgets: [] });
+            const r = await fetch('/api/layouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body
+            });
+            if (!r.ok) throw new Error(r.status);
+            await fetch('/api/layouts/active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            await leLoadAll();
+        } catch (e) {
+            alert('Could not create preset: ' + e.message);
+        }
+    }
+
+    async function leDeletePreset() {
+        const name = leState.activeName;
+        if (!confirm('Delete preset "' + name + '"? This cannot be undone.')) return;
+        try {
+            const r = await fetch('/api/layouts/' + encodeURIComponent(name), { method: 'DELETE' });
+            if (!r.ok) {
+                if (r.status === 400) alert('The active preset cannot be deleted. Switch to another preset first.');
+                else                  alert('Delete failed: ' + r.status);
+                return;
+            }
+            await leLoadAll();
+        } catch (e) {
+            alert('Delete failed: ' + e.message);
+        }
+    }
+
+    async function leSaveLayout() {
+        const layout = leActive();
+        if (!layout.name) { alert('No active layout.'); return; }
+        try {
+            const r = await fetch('/api/layouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(layout)
+            });
+            if (!r.ok) throw new Error(r.status);
+            leMarkDirty(false);
+        } catch (e) {
+            alert('Save failed: ' + e.message);
+        }
+    }
+
+    async function lePushLayout() {
+        if (leState.dirty) {
+            if (!confirm('You have unsaved changes. Save and push?')) return;
+            await leSaveLayout();
+        }
+        try {
+            const r = await fetch('/api/layouts/active/push', { method: 'POST' });
+            if (!r.ok) throw new Error(r.status);
+            const btn = document.getElementById('le-push-btn');
+            if (btn) {
+                const orig = btn.textContent;
+                btn.textContent = 'Pushed ✓';
+                setTimeout(() => { btn.textContent = orig; }, 1200);
+            }
+        } catch (e) {
+            alert('Push failed: ' + e.message);
+        }
+    }
+
+    // ── HTML escaping helpers ──────────────────────────────────────────────
+    function escapeHtml(s)  { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function escapeAttr(s)  { return escapeHtml(s); }
+
     // ── Init ──────────────────────────────────────────
     loadServerSettings();
-    loadAppSettings();
     refreshStatus();
     setInterval(refreshStatus, 2000);
 </script>

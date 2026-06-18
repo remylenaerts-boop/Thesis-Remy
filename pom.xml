@@ -53,6 +53,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
+        <!--
+            Jackson for reading and writing config/layouts.json and for the
+            new /api/sources and /api/layouts endpoints. Spring Boot 4.0's
+            starter-webmvc does not pull this in transitively the way the
+            older starter-web did, so it is declared explicitly here.
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
 
     </dependencies>
 
